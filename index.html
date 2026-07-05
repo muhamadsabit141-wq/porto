@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Raja Subhan Alpariz | Portfolio</title>
+  <meta name="description" content="Portfolio personal Raja Subhan Alpariz — kegiatan, prestasi, dan kontak." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- Background ambient orbs (signature visual element) -->
+  <div class="bg-orb bg-orb--one" aria-hidden="true"></div>
+  <div class="bg-orb bg-orb--two" aria-hidden="true"></div>
+
+  <header class="site-header" id="site-header">
+    <div class="container header-inner">
+      <a href="#hero" class="logo">RSA<span class="logo-dot">.</span></a>
+
+      <nav class="main-nav" id="main-nav">
+        <ul class="nav-list">
+          <li><a href="#tentang" class="nav-link">Tentang</a></li>
+          <li><a href="#kegiatan" class="nav-link">Kegiatan</a></li>
+          <li><a href="#prestasi" class="nav-link">Prestasi</a></li>
+          <li><a href="#kontak" class="nav-link">Kontak</a></li>
+        </ul>
+      </nav>
+
+      <button class="nav-toggle" id="nav-toggle" aria-label="Buka menu navigasi" aria-expanded="false">
+        <span class="nav-toggle-bar"></span>
+        <span class="nav-toggle-bar"></span>
+        <span class="nav-toggle-bar"></span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO -->
+    <section id="hero" class="hero">
+      <div class="container hero-inner">
+        <div class="hero-copy fade-in">
+          <p class="eyebrow"><i class="fa-solid fa-code"></i>&nbsp; Portfolio Personal</p>
+          <h1 class="hero-name">Raja Subhan <span class="text-accent">Alpariz</span></h1>
+          <p class="hero-tagline">
+            <span id="tagline-text"></span><span class="tagline-cursor" aria-hidden="true">|</span>
+          </p>
+          <div class="hero-cta">
+            <a href="#kontak" class="btn btn-primary">Hubungi Saya <i class="fa-solid fa-arrow-right"></i></a>
+            <a href="#kegiatan" class="btn btn-ghost">Lihat Kegiatan</a>
+          </div>
+        </div>
+
+        <div class="hero-visual fade-in">
+          <div class="hero-photo-ring">
+            <img
+              src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?q=80&w=600&auto=format&fit=crop"
+              alt="Foto profil Raja Subhan Alpariz"
+              class="hero-photo"
+              id="profile-photo"
+              loading="lazy"
+            />
+          </div>
+        </div>
+      </div>
+      <div class="scroll-indicator" aria-hidden="true">
+        <span></span>
+      </div>
+    </section>
+
+    <!-- TENTANG SAYA -->
+    <section id="tentang" class="section">
+      <div class="container">
+        <p class="section-eyebrow">// Profil</p>
+        <h2 class="section-title">Tentang Saya</h2>
+        <div class="about-content fade-in">
+          <p id="about-text" class="about-text">Memuat data profil...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- KEGIATAN -->
+    <section id="kegiatan" class="section section-alt">
+      <div class="container">
+        <p class="section-eyebrow">// Aktivitas</p>
+        <h2 class="section-title">Kegiatan Saya</h2>
+        <div class="kegiatan-grid" id="kegiatan-grid">
+          <p class="loading-text">Memuat data kegiatan...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRESTASI -->
+    <section id="prestasi" class="section">
+      <div class="container">
+        <p class="section-eyebrow">// Pencapaian</p>
+        <h2 class="section-title">Prestasi Saya</h2>
+        <div class="prestasi-timeline" id="prestasi-timeline">
+          <p class="loading-text">Memuat data prestasi...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- KONTAK / SOSMED -->
+    <section id="kontak" class="section section-alt">
+      <div class="container">
+        <p class="section-eyebrow">// Terhubung</p>
+        <h2 class="section-title">Sosmed &amp; Kontak</h2>
+        <p class="kontak-desc">Tertarik untuk berkolaborasi atau sekadar menyapa? Silakan hubungi lewat kanal berikut.</p>
+        <div class="sosmed-links" id="sosmed-links">
+          <p class="loading-text">Memuat tautan kontak...</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>&copy; <span id="footer-year"></span> Raja Subhan Alpariz. Seluruh hak cipta dilindungi.</p>
+      <a href="admin.html" class="footer-admin-link">Admin</a>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard | Raja Subhan Alpariz</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="style.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="admin-body">
+
+  <!-- ================= LOGIN SECTION ================= -->
+  <div class="admin-login-wrap" id="login-section">
+    <div class="admin-card">
+      <h1>Admin Dashboard</h1>
+      <p class="admin-subtitle">Masuk untuk mengelola konten portfolio.</p>
+
+      <form id="login-form" novalidate>
+        <div class="form-group">
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" name="username" autocomplete="username" required />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" name="password" autocomplete="current-password" required />
+        </div>
+        <p class="form-error" id="login-error"></p>
+        <button type="submit" class="btn-save" id="login-submit-btn" style="width:100%;">Masuk</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= DASHBOARD SECTION ================= -->
+  <div class="admin-shell hidden" id="dashboard-section">
+    <div class="admin-topbar">
+      <h1>Dashboard Admin</h1>
+      <button class="btn-logout" id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i>&nbsp; Keluar</button>
+    </div>
+
+    <!-- Profile -->
+    <section class="admin-panel">
+      <h2><i class="fa-solid fa-user"></i> Tentang Saya</h2>
+      <div class="form-group">
+        <label for="profile-textarea">Deskripsi profil</label>
+        <textarea id="profile-textarea" placeholder="Tuliskan deskripsi tentang diri Anda..."></textarea>
+      </div>
+      <button type="button" class="btn-save" id="save-profile-btn">Simpan Profil</button>
+    </section>
+
+    <!-- Kegiatan -->
+    <section class="admin-panel">
+      <h2><i class="fa-solid fa-bolt"></i> Kegiatan</h2>
+
+      <div class="admin-item-list" id="kegiatan-list">
+        <p class="loading-text">Memuat data kegiatan...</p>
+      </div>
+
+      <form id="kegiatan-form" class="admin-inline-form two-col" novalidate>
+        <div class="form-group">
+          <label for="kegiatan-judul">Judul</label>
+          <input type="text" id="kegiatan-judul" required />
+        </div>
+        <div class="form-group">
+          <label for="kegiatan-kategori">Kategori / Tanggal</label>
+          <input type="text" id="kegiatan-kategori" placeholder="mis. Organisasi, 2026" />
+        </div>
+        <div class="form-group full">
+          <label for="kegiatan-deskripsi">Deskripsi</label>
+          <textarea id="kegiatan-deskripsi" placeholder="Deskripsi singkat kegiatan..."></textarea>
+        </div>
+        <div class="full">
+          <button type="submit" class="btn-save" id="kegiatan-submit-btn">Tambah Kegiatan</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Prestasi -->
+    <section class="admin-panel">
+      <h2><i class="fa-solid fa-trophy"></i> Prestasi</h2>
+
+      <div class="admin-item-list" id="prestasi-list">
+        <p class="loading-text">Memuat data prestasi...</p>
+      </div>
+
+      <form id="prestasi-form" class="admin-inline-form two-col" novalidate>
+        <div class="form-group">
+          <label for="prestasi-nama">Nama Prestasi</label>
+          <input type="text" id="prestasi-nama" required />
+        </div>
+        <div class="form-group">
+          <label for="prestasi-tahun">Tahun</label>
+          <input type="text" id="prestasi-tahun" placeholder="mis. 2025" required />
+        </div>
+        <div class="form-group full">
+          <label for="prestasi-deskripsi">Deskripsi Singkat</label>
+          <textarea id="prestasi-deskripsi" placeholder="Deskripsi singkat prestasi..."></textarea>
+        </div>
+        <div class="full">
+          <button type="submit" class="btn-save" id="prestasi-submit-btn">Tambah Prestasi</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Sosmed -->
+    <section class="admin-panel">
+      <h2><i class="fa-solid fa-share-nodes"></i> Sosmed &amp; Kontak</h2>
+      <form id="sosmed-form" class="admin-inline-form" novalidate>
+        <div class="form-group">
+          <label for="sosmed-tiktok">URL TikTok</label>
+          <input type="url" id="sosmed-tiktok" placeholder="https://tiktok.com/@username" />
+        </div>
+        <div class="form-group">
+          <label for="sosmed-instagram">URL Instagram</label>
+          <input type="url" id="sosmed-instagram" placeholder="https://instagram.com/username" />
+        </div>
+        <div class="form-group">
+          <label for="sosmed-email">Alamat Email</label>
+          <input type="email" id="sosmed-email" placeholder="nama@email.com" />
+        </div>
+        <div>
+          <button type="submit" class="btn-save" id="sosmed-submit-btn">Simpan Sosmed</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
