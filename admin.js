@@ -1,6 +1,6 @@
 /* =========================================================
    RAJA SUBHAN ALPARIZ — PORTFOLIO
-   admin.js — Login guard & CRUD logic for dashboard
+   admin.js — Login guard, CRUD, and media upload logic
    ========================================================= */
 
 /* -----------------------------------------------------------
@@ -9,6 +9,16 @@
 ----------------------------------------------------------- */
 const SUPABASE_URL = "https://YOUR-PROJECT-REF.supabase.co";
 const SUPABASE_ANON_KEY = "YOUR-SUPABASE-ANON-PUBLIC-KEY";
+
+/* Nama bucket Supabase Storage tempat semua file diunggah.
+   Bucket ini harus dibuat manual di dashboard Supabase
+   (Storage > New bucket) dan diset sebagai "Public bucket". */
+const STORAGE_BUCKET = "portfolio-media";
+
+/* Batas ukuran file (dalam byte) */
+const MAX_IMAGE_SIZE = 8 * 1024 * 1024; // 8MB
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_DOC_SIZE = 10 * 1024 * 1024; // 10MB
 
 let supabaseClient = null;
 
@@ -43,29 +53,75 @@ const logoutBtn = document.getElementById("logout-btn");
 
 const profileTextarea = document.getElementById("profile-textarea");
 const saveProfileBtn = document.getElementById("save-profile-btn");
+const profilePhotoInput = document.getElementById("profile-photo-input");
+const profilePhotoPreview = document.getElementById("profile-photo-preview");
+const profilePhotoPlaceholder = document.getElementById("profile-photo-placeholder");
 
 const kegiatanList = document.getElementById("kegiatan-list");
 const kegiatanForm = document.getElementById("kegiatan-form");
+const kegiatanEditId = document.getElementById("kegiatan-edit-id");
 const kegiatanJudul = document.getElementById("kegiatan-judul");
 const kegiatanKategori = document.getElementById("kegiatan-kategori");
 const kegiatanDeskripsi = document.getElementById("kegiatan-deskripsi");
 const kegiatanSubmitBtn = document.getElementById("kegiatan-submit-btn");
+const kegiatanCancelBtn = document.getElementById("kegiatan-cancel-btn");
+const kegiatanMediaInput = document.getElementById("kegiatan-media-input");
+const kegiatanMediaPreviewImg = document.getElementById("kegiatan-media-preview-img");
+const kegiatanMediaPreviewVideo = document.getElementById("kegiatan-media-preview-video");
+const kegiatanMediaPlaceholder = document.getElementById("kegiatan-media-placeholder");
+const kegiatanMediaRemoveBtn = document.getElementById("kegiatan-media-remove-btn");
 
 const prestasiList = document.getElementById("prestasi-list");
 const prestasiForm = document.getElementById("prestasi-form");
+const prestasiEditId = document.getElementById("prestasi-edit-id");
 const prestasiNama = document.getElementById("prestasi-nama");
 const prestasiTahun = document.getElementById("prestasi-tahun");
 const prestasiDeskripsi = document.getElementById("prestasi-deskripsi");
 const prestasiSubmitBtn = document.getElementById("prestasi-submit-btn");
+const prestasiCancelBtn = document.getElementById("prestasi-cancel-btn");
+const prestasiMediaInput = document.getElementById("prestasi-media-input");
+const prestasiMediaPreviewImg = document.getElementById("prestasi-media-preview-img");
+const prestasiMediaPreviewVideo = document.getElementById("prestasi-media-preview-video");
+const prestasiMediaPlaceholder = document.getElementById("prestasi-media-placeholder");
+const prestasiMediaRemoveBtn = document.getElementById("prestasi-media-remove-btn");
 
 const sosmedForm = document.getElementById("sosmed-form");
 const sosmedTiktok = document.getElementById("sosmed-tiktok");
 const sosmedInstagram = document.getElementById("sosmed-instagram");
 const sosmedEmail = document.getElementById("sosmed-email");
 const sosmedSubmitBtn = document.getElementById("sosmed-submit-btn");
+const sosmedFileInput = document.getElementById("sosmed-file-input");
+const sosmedFileCurrent = document.getElementById("sosmed-file-current");
+const sosmedFileSelectedHint = document.getElementById("sosmed-file-selected-hint");
 
 /* -----------------------------------------------------------
-   4. UTILITAS: TOAST NOTIFIKASI
+   4. STATE: file yang dipilih tapi belum diunggah + mode edit
+----------------------------------------------------------- */
+const state = {
+  profilePhotoFile: null,
+  profileExistingId: null,
+  profileExistingFotoUrl: "",
+
+  kegiatanEditingId: null,
+  kegiatanMediaFile: null,
+  kegiatanRemoveMedia: false,
+  kegiatanExistingMediaUrl: "",
+  kegiatanExistingMediaType: "",
+
+  prestasiEditingId: null,
+  prestasiMediaFile: null,
+  prestasiRemoveMedia: false,
+  prestasiExistingMediaUrl: "",
+  prestasiExistingMediaType: "",
+
+  sosmedExistingId: null,
+  sosmedFile: null,
+  sosmedRemoveFile: false,
+  sosmedExistingFileUrl: "",
+};
+
+/* -----------------------------------------------------------
+   5. UTILITAS: TOAST NOTIFIKASI
 ----------------------------------------------------------- */
 function showToast(message, isError = false) {
   const existing = document.querySelector(".toast");
@@ -91,8 +147,55 @@ function setButtonLoading(button, isLoading, loadingText, defaultText) {
   button.textContent = isLoading ? loadingText : defaultText;
 }
 
+function getFileNameFromUrl(url) {
+  try {
+    const clean = url.split("?")[0];
+    const parts = clean.split("/");
+    return decodeURIComponent(parts[parts.length - 1]);
+  } catch (e) {
+    return "file";
+  }
+}
+
 /* -----------------------------------------------------------
-   5. PROTEKSI LOGIN
+   6. UPLOAD KE SUPABASE STORAGE
+----------------------------------------------------------- */
+async function uploadFileToStorage(file, folder) {
+  if (!supabaseClient) throw new Error("Supabase belum terhubung.");
+
+  const safeExt = (file.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const uniqueName = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${safeExt}`;
+
+  const { error: uploadError } = await supabaseClient.storage
+    .from(STORAGE_BUCKET)
+    .upload(uniqueName, file, { cacheControl: "3600", upsert: false });
+
+  if (uploadError) throw uploadError;
+
+  const { data: publicData } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(uniqueName);
+
+  if (!publicData || !publicData.publicUrl) {
+    throw new Error("Gagal mendapatkan URL publik file.");
+  }
+
+  return publicData.publicUrl;
+}
+
+function validateFile(file, kind) {
+  if (kind === "image" && file.size > MAX_IMAGE_SIZE) {
+    return "Ukuran gambar melebihi batas 8MB.";
+  }
+  if (kind === "video" && file.size > MAX_VIDEO_SIZE) {
+    return "Ukuran video melebihi batas 50MB.";
+  }
+  if (kind === "doc" && file.size > MAX_DOC_SIZE) {
+    return "Ukuran file melebihi batas 10MB.";
+  }
+  return null;
+}
+
+/* -----------------------------------------------------------
+   7. PROTEKSI LOGIN
 ----------------------------------------------------------- */
 function isLoggedIn() {
   return sessionStorage.getItem(SESSION_KEY) === "true";
@@ -137,7 +240,7 @@ function handleLogout() {
 }
 
 /* -----------------------------------------------------------
-   6. PROFILE: LOAD & SAVE
+   8. PROFILE: LOAD, PREVIEW FOTO, & SAVE
 ----------------------------------------------------------- */
 async function loadProfile() {
   if (!supabaseClient || !profileTextarea) return;
@@ -152,10 +255,41 @@ async function loadProfile() {
     if (error) throw error;
 
     profileTextarea.value = data && data.deskripsi ? data.deskripsi : "";
+    state.profileExistingId = data && data.id ? data.id : null;
+    state.profileExistingFotoUrl = data && data.foto_url ? data.foto_url : "";
+
+    updateProfilePhotoPreview(state.profileExistingFotoUrl);
   } catch (err) {
     console.error("Gagal memuat profile:", err);
     showToast("Gagal memuat data profil.", true);
   }
+}
+
+function updateProfilePhotoPreview(url) {
+  if (url) {
+    profilePhotoPreview.src = url;
+    profilePhotoPreview.classList.remove("hidden");
+    profilePhotoPlaceholder.classList.add("hidden");
+  } else {
+    profilePhotoPreview.classList.add("hidden");
+    profilePhotoPlaceholder.classList.remove("hidden");
+  }
+}
+
+function handleProfilePhotoInputChange() {
+  const file = profilePhotoInput.files && profilePhotoInput.files[0];
+  if (!file) return;
+
+  const validationError = validateFile(file, "image");
+  if (validationError) {
+    showToast(validationError, true);
+    profilePhotoInput.value = "";
+    return;
+  }
+
+  state.profilePhotoFile = file;
+  const localUrl = URL.createObjectURL(file);
+  updateProfilePhotoPreview(localUrl);
 }
 
 async function saveProfile() {
@@ -164,30 +298,30 @@ async function saveProfile() {
   setButtonLoading(saveProfileBtn, true, "Menyimpan...", "Simpan Profil");
 
   try {
-    const { data: existing, error: fetchErr } = await supabaseClient
-      .from("profile")
-      .select("id")
-      .limit(1)
-      .maybeSingle();
+    let fotoUrl = state.profileExistingFotoUrl;
 
-    if (fetchErr) throw fetchErr;
+    if (state.profilePhotoFile) {
+      fotoUrl = await uploadFileToStorage(state.profilePhotoFile, "profile");
+    }
+
+    const payload = { deskripsi: profileTextarea.value, foto_url: fotoUrl };
 
     let opError = null;
 
-    if (existing && existing.id) {
-      const { error } = await supabaseClient
-        .from("profile")
-        .update({ deskripsi: profileTextarea.value })
-        .eq("id", existing.id);
+    if (state.profileExistingId) {
+      const { error } = await supabaseClient.from("profile").update(payload).eq("id", state.profileExistingId);
       opError = error;
     } else {
-      const { error } = await supabaseClient
-        .from("profile")
-        .insert([{ deskripsi: profileTextarea.value }]);
+      const { data: inserted, error } = await supabaseClient.from("profile").insert([payload]).select().maybeSingle();
       opError = error;
+      if (inserted && inserted.id) state.profileExistingId = inserted.id;
     }
 
     if (opError) throw opError;
+
+    state.profilePhotoFile = null;
+    state.profileExistingFotoUrl = fotoUrl;
+    profilePhotoInput.value = "";
 
     showToast("Profil berhasil diperbarui.");
   } catch (err) {
@@ -199,7 +333,120 @@ async function saveProfile() {
 }
 
 /* -----------------------------------------------------------
-   7. KEGIATAN: LOAD, INSERT, DELETE
+   9. HELPER: PREVIEW MEDIA (Kegiatan / Prestasi — image atau video)
+----------------------------------------------------------- */
+function showMediaPreview({ url, type, imgEl, videoEl, placeholderEl, removeBtnEl }) {
+  imgEl.classList.add("hidden");
+  videoEl.classList.add("hidden");
+  imgEl.removeAttribute("src");
+  videoEl.removeAttribute("src");
+
+  if (!url) {
+    placeholderEl.classList.remove("hidden");
+    removeBtnEl.classList.add("hidden");
+    return;
+  }
+
+  placeholderEl.classList.add("hidden");
+  removeBtnEl.classList.remove("hidden");
+
+  if (type === "video") {
+    videoEl.src = url;
+    videoEl.classList.remove("hidden");
+  } else {
+    imgEl.src = url;
+    imgEl.classList.remove("hidden");
+  }
+}
+
+function resetKegiatanMediaPreview() {
+  showMediaPreview({
+    url: "",
+    type: "",
+    imgEl: kegiatanMediaPreviewImg,
+    videoEl: kegiatanMediaPreviewVideo,
+    placeholderEl: kegiatanMediaPlaceholder,
+    removeBtnEl: kegiatanMediaRemoveBtn,
+  });
+}
+
+function resetPrestasiMediaPreview() {
+  showMediaPreview({
+    url: "",
+    type: "",
+    imgEl: prestasiMediaPreviewImg,
+    videoEl: prestasiMediaPreviewVideo,
+    placeholderEl: prestasiMediaPlaceholder,
+    removeBtnEl: prestasiMediaRemoveBtn,
+  });
+}
+
+function handleKegiatanMediaInputChange() {
+  const file = kegiatanMediaInput.files && kegiatanMediaInput.files[0];
+  if (!file) return;
+
+  const isVideo = file.type.startsWith("video/");
+  const validationError = validateFile(file, isVideo ? "video" : "image");
+  if (validationError) {
+    showToast(validationError, true);
+    kegiatanMediaInput.value = "";
+    return;
+  }
+
+  state.kegiatanMediaFile = file;
+  state.kegiatanRemoveMedia = false;
+  const localUrl = URL.createObjectURL(file);
+  showMediaPreview({
+    url: localUrl,
+    type: isVideo ? "video" : "image",
+    imgEl: kegiatanMediaPreviewImg,
+    videoEl: kegiatanMediaPreviewVideo,
+    placeholderEl: kegiatanMediaPlaceholder,
+    removeBtnEl: kegiatanMediaRemoveBtn,
+  });
+}
+
+function handlePrestasiMediaInputChange() {
+  const file = prestasiMediaInput.files && prestasiMediaInput.files[0];
+  if (!file) return;
+
+  const isVideo = file.type.startsWith("video/");
+  const validationError = validateFile(file, isVideo ? "video" : "image");
+  if (validationError) {
+    showToast(validationError, true);
+    prestasiMediaInput.value = "";
+    return;
+  }
+
+  state.prestasiMediaFile = file;
+  state.prestasiRemoveMedia = false;
+  const localUrl = URL.createObjectURL(file);
+  showMediaPreview({
+    url: localUrl,
+    type: isVideo ? "video" : "image",
+    imgEl: prestasiMediaPreviewImg,
+    videoEl: prestasiMediaPreviewVideo,
+    placeholderEl: prestasiMediaPlaceholder,
+    removeBtnEl: prestasiMediaRemoveBtn,
+  });
+}
+
+function handleKegiatanMediaRemoveClick() {
+  state.kegiatanMediaFile = null;
+  state.kegiatanRemoveMedia = true;
+  kegiatanMediaInput.value = "";
+  resetKegiatanMediaPreview();
+}
+
+function handlePrestasiMediaRemoveClick() {
+  state.prestasiMediaFile = null;
+  state.prestasiRemoveMedia = true;
+  prestasiMediaInput.value = "";
+  resetPrestasiMediaPreview();
+}
+
+/* -----------------------------------------------------------
+   10. KEGIATAN: LOAD, TAMBAH/UPDATE, HAPUS, EDIT
 ----------------------------------------------------------- */
 async function loadKegiatan() {
   if (!supabaseClient || !kegiatanList) return;
@@ -224,6 +471,8 @@ async function loadKegiatan() {
         makeItemRow({
           title: item.judul || "Tanpa judul",
           subtitle: item.kategori || "",
+          hasMedia: Boolean(item.media_url),
+          onEdit: () => startEditKegiatan(item),
           onDelete: () => deleteKegiatan(item.id),
         })
       );
@@ -235,7 +484,49 @@ async function loadKegiatan() {
   }
 }
 
-async function addKegiatan(e) {
+function startEditKegiatan(item) {
+  state.kegiatanEditingId = item.id;
+  state.kegiatanMediaFile = null;
+  state.kegiatanRemoveMedia = false;
+  state.kegiatanExistingMediaUrl = item.media_url || "";
+  state.kegiatanExistingMediaType = item.media_type || "image";
+
+  kegiatanEditId.value = item.id;
+  kegiatanJudul.value = item.judul || "";
+  kegiatanKategori.value = item.kategori || "";
+  kegiatanDeskripsi.value = item.deskripsi || "";
+  kegiatanMediaInput.value = "";
+
+  showMediaPreview({
+    url: state.kegiatanExistingMediaUrl,
+    type: state.kegiatanExistingMediaType,
+    imgEl: kegiatanMediaPreviewImg,
+    videoEl: kegiatanMediaPreviewVideo,
+    placeholderEl: kegiatanMediaPlaceholder,
+    removeBtnEl: kegiatanMediaRemoveBtn,
+  });
+
+  kegiatanSubmitBtn.textContent = "Update Kegiatan";
+  kegiatanCancelBtn.classList.remove("hidden");
+  kegiatanForm.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function cancelEditKegiatan() {
+  state.kegiatanEditingId = null;
+  state.kegiatanMediaFile = null;
+  state.kegiatanRemoveMedia = false;
+  state.kegiatanExistingMediaUrl = "";
+  state.kegiatanExistingMediaType = "";
+
+  kegiatanForm.reset();
+  kegiatanEditId.value = "";
+  resetKegiatanMediaPreview();
+
+  kegiatanSubmitBtn.textContent = "Tambah Kegiatan";
+  kegiatanCancelBtn.classList.add("hidden");
+}
+
+async function submitKegiatan(e) {
   e.preventDefault();
   if (!supabaseClient) return;
 
@@ -245,28 +536,50 @@ async function addKegiatan(e) {
     return;
   }
 
-  setButtonLoading(kegiatanSubmitBtn, true, "Menyimpan...", "Tambah Kegiatan");
+  const isEditing = Boolean(state.kegiatanEditingId);
+  setButtonLoading(kegiatanSubmitBtn, true, "Menyimpan...", isEditing ? "Update Kegiatan" : "Tambah Kegiatan");
 
   try {
-    const { error } = await supabaseClient.from("kegiatan").insert([
-      {
-        judul,
-        kategori: kegiatanKategori.value.trim(),
-        deskripsi: kegiatanDeskripsi.value.trim(),
-        created_at: new Date().toISOString(),
-      },
-    ]);
+    let mediaUrl = state.kegiatanExistingMediaUrl;
+    let mediaType = state.kegiatanExistingMediaType;
 
-    if (error) throw error;
+    if (state.kegiatanMediaFile) {
+      mediaUrl = await uploadFileToStorage(state.kegiatanMediaFile, "kegiatan");
+      mediaType = state.kegiatanMediaFile.type.startsWith("video/") ? "video" : "image";
+    } else if (state.kegiatanRemoveMedia) {
+      mediaUrl = "";
+      mediaType = "";
+    }
 
-    kegiatanForm.reset();
-    showToast("Kegiatan berhasil ditambahkan.");
+    const payload = {
+      judul,
+      kategori: kegiatanKategori.value.trim(),
+      deskripsi: kegiatanDeskripsi.value.trim(),
+      media_url: mediaUrl || null,
+      media_type: mediaType || null,
+    };
+
+    let opError = null;
+
+    if (isEditing) {
+      const { error } = await supabaseClient.from("kegiatan").update(payload).eq("id", state.kegiatanEditingId);
+      opError = error;
+    } else {
+      payload.created_at = new Date().toISOString();
+      const { error } = await supabaseClient.from("kegiatan").insert([payload]);
+      opError = error;
+    }
+
+    if (opError) throw opError;
+
+    showToast(isEditing ? "Kegiatan berhasil diperbarui." : "Kegiatan berhasil ditambahkan.");
+    cancelEditKegiatan();
     await loadKegiatan();
   } catch (err) {
-    console.error("Gagal menambah kegiatan:", err);
-    showToast("Gagal menambahkan kegiatan. Coba lagi.", true);
+    console.error("Gagal menyimpan kegiatan:", err);
+    showToast("Gagal menyimpan kegiatan. Coba lagi.", true);
   } finally {
-    setButtonLoading(kegiatanSubmitBtn, false, "Menyimpan...", "Tambah Kegiatan");
+    setButtonLoading(kegiatanSubmitBtn, false, "Menyimpan...", isEditing ? "Update Kegiatan" : "Tambah Kegiatan");
   }
 }
 
@@ -278,6 +591,8 @@ async function deleteKegiatan(id) {
     const { error } = await supabaseClient.from("kegiatan").delete().eq("id", id);
     if (error) throw error;
 
+    if (state.kegiatanEditingId === id) cancelEditKegiatan();
+
     showToast("Kegiatan berhasil dihapus.");
     await loadKegiatan();
   } catch (err) {
@@ -287,7 +602,7 @@ async function deleteKegiatan(id) {
 }
 
 /* -----------------------------------------------------------
-   8. PRESTASI: LOAD, INSERT, DELETE
+   11. PRESTASI: LOAD, TAMBAH/UPDATE, HAPUS, EDIT
 ----------------------------------------------------------- */
 async function loadPrestasi() {
   if (!supabaseClient || !prestasiList) return;
@@ -312,6 +627,8 @@ async function loadPrestasi() {
         makeItemRow({
           title: item.nama || "Tanpa nama",
           subtitle: item.tahun || "",
+          hasMedia: Boolean(item.media_url),
+          onEdit: () => startEditPrestasi(item),
           onDelete: () => deletePrestasi(item.id),
         })
       );
@@ -323,7 +640,49 @@ async function loadPrestasi() {
   }
 }
 
-async function addPrestasi(e) {
+function startEditPrestasi(item) {
+  state.prestasiEditingId = item.id;
+  state.prestasiMediaFile = null;
+  state.prestasiRemoveMedia = false;
+  state.prestasiExistingMediaUrl = item.media_url || "";
+  state.prestasiExistingMediaType = item.media_type || "image";
+
+  prestasiEditId.value = item.id;
+  prestasiNama.value = item.nama || "";
+  prestasiTahun.value = item.tahun || "";
+  prestasiDeskripsi.value = item.deskripsi || "";
+  prestasiMediaInput.value = "";
+
+  showMediaPreview({
+    url: state.prestasiExistingMediaUrl,
+    type: state.prestasiExistingMediaType,
+    imgEl: prestasiMediaPreviewImg,
+    videoEl: prestasiMediaPreviewVideo,
+    placeholderEl: prestasiMediaPlaceholder,
+    removeBtnEl: prestasiMediaRemoveBtn,
+  });
+
+  prestasiSubmitBtn.textContent = "Update Prestasi";
+  prestasiCancelBtn.classList.remove("hidden");
+  prestasiForm.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function cancelEditPrestasi() {
+  state.prestasiEditingId = null;
+  state.prestasiMediaFile = null;
+  state.prestasiRemoveMedia = false;
+  state.prestasiExistingMediaUrl = "";
+  state.prestasiExistingMediaType = "";
+
+  prestasiForm.reset();
+  prestasiEditId.value = "";
+  resetPrestasiMediaPreview();
+
+  prestasiSubmitBtn.textContent = "Tambah Prestasi";
+  prestasiCancelBtn.classList.add("hidden");
+}
+
+async function submitPrestasi(e) {
   e.preventDefault();
   if (!supabaseClient) return;
 
@@ -335,27 +694,49 @@ async function addPrestasi(e) {
     return;
   }
 
-  setButtonLoading(prestasiSubmitBtn, true, "Menyimpan...", "Tambah Prestasi");
+  const isEditing = Boolean(state.prestasiEditingId);
+  setButtonLoading(prestasiSubmitBtn, true, "Menyimpan...", isEditing ? "Update Prestasi" : "Tambah Prestasi");
 
   try {
-    const { error } = await supabaseClient.from("prestasi").insert([
-      {
-        nama,
-        tahun,
-        deskripsi: prestasiDeskripsi.value.trim(),
-      },
-    ]);
+    let mediaUrl = state.prestasiExistingMediaUrl;
+    let mediaType = state.prestasiExistingMediaType;
 
-    if (error) throw error;
+    if (state.prestasiMediaFile) {
+      mediaUrl = await uploadFileToStorage(state.prestasiMediaFile, "prestasi");
+      mediaType = state.prestasiMediaFile.type.startsWith("video/") ? "video" : "image";
+    } else if (state.prestasiRemoveMedia) {
+      mediaUrl = "";
+      mediaType = "";
+    }
 
-    prestasiForm.reset();
-    showToast("Prestasi berhasil ditambahkan.");
+    const payload = {
+      nama,
+      tahun,
+      deskripsi: prestasiDeskripsi.value.trim(),
+      media_url: mediaUrl || null,
+      media_type: mediaType || null,
+    };
+
+    let opError = null;
+
+    if (isEditing) {
+      const { error } = await supabaseClient.from("prestasi").update(payload).eq("id", state.prestasiEditingId);
+      opError = error;
+    } else {
+      const { error } = await supabaseClient.from("prestasi").insert([payload]);
+      opError = error;
+    }
+
+    if (opError) throw opError;
+
+    showToast(isEditing ? "Prestasi berhasil diperbarui." : "Prestasi berhasil ditambahkan.");
+    cancelEditPrestasi();
     await loadPrestasi();
   } catch (err) {
-    console.error("Gagal menambah prestasi:", err);
-    showToast("Gagal menambahkan prestasi. Coba lagi.", true);
+    console.error("Gagal menyimpan prestasi:", err);
+    showToast("Gagal menyimpan prestasi. Coba lagi.", true);
   } finally {
-    setButtonLoading(prestasiSubmitBtn, false, "Menyimpan...", "Tambah Prestasi");
+    setButtonLoading(prestasiSubmitBtn, false, "Menyimpan...", isEditing ? "Update Prestasi" : "Tambah Prestasi");
   }
 }
 
@@ -367,6 +748,8 @@ async function deletePrestasi(id) {
     const { error } = await supabaseClient.from("prestasi").delete().eq("id", id);
     if (error) throw error;
 
+    if (state.prestasiEditingId === id) cancelEditPrestasi();
+
     showToast("Prestasi berhasil dihapus.");
     await loadPrestasi();
   } catch (err) {
@@ -376,7 +759,7 @@ async function deletePrestasi(id) {
 }
 
 /* -----------------------------------------------------------
-   9. SOSMED: LOAD & SAVE
+   12. SOSMED: LOAD & SAVE (termasuk file tambahan/CV)
 ----------------------------------------------------------- */
 async function loadSosmed() {
   if (!supabaseClient) return;
@@ -393,10 +776,63 @@ async function loadSosmed() {
     sosmedTiktok.value = data && data.tiktok ? data.tiktok : "";
     sosmedInstagram.value = data && data.instagram ? data.instagram : "";
     sosmedEmail.value = data && data.email ? data.email : "";
+
+    state.sosmedExistingId = data && data.id ? data.id : null;
+    state.sosmedExistingFileUrl = data && data.file_url ? data.file_url : "";
+
+    renderSosmedFileCurrent();
   } catch (err) {
     console.error("Gagal memuat sosmed:", err);
     showToast("Gagal memuat data sosmed.", true);
   }
+}
+
+function renderSosmedFileCurrent() {
+  sosmedFileCurrent.innerHTML = "";
+
+  if (!state.sosmedExistingFileUrl) {
+    const span = document.createElement("span");
+    span.className = "empty-text file-empty-inline";
+    span.id = "sosmed-file-empty-text";
+    span.textContent = "Belum ada file diunggah.";
+    sosmedFileCurrent.appendChild(span);
+    return;
+  }
+
+  const link = document.createElement("a");
+  link.href = state.sosmedExistingFileUrl;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.className = "file-current-link";
+  link.innerHTML = `<i class="fa-solid fa-file-lines"></i> ${escapeText(getFileNameFromUrl(state.sosmedExistingFileUrl))}`;
+
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.className = "btn-delete file-current-remove";
+  removeBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+  removeBtn.addEventListener("click", () => {
+    state.sosmedRemoveFile = true;
+    state.sosmedExistingFileUrl = "";
+    renderSosmedFileCurrent();
+  });
+
+  sosmedFileCurrent.append(link, removeBtn);
+}
+
+function handleSosmedFileInputChange() {
+  const file = sosmedFileInput.files && sosmedFileInput.files[0];
+  if (!file) return;
+
+  const validationError = validateFile(file, "doc");
+  if (validationError) {
+    showToast(validationError, true);
+    sosmedFileInput.value = "";
+    return;
+  }
+
+  state.sosmedFile = file;
+  state.sosmedRemoveFile = false;
+  sosmedFileSelectedHint.textContent = `File dipilih: ${file.name}`;
 }
 
 async function saveSosmed(e) {
@@ -406,31 +842,40 @@ async function saveSosmed(e) {
   setButtonLoading(sosmedSubmitBtn, true, "Menyimpan...", "Simpan Sosmed");
 
   try {
-    const { data: existing, error: fetchErr } = await supabaseClient
-      .from("sosmed")
-      .select("id")
-      .limit(1)
-      .maybeSingle();
+    let fileUrl = state.sosmedExistingFileUrl;
 
-    if (fetchErr) throw fetchErr;
+    if (state.sosmedFile) {
+      fileUrl = await uploadFileToStorage(state.sosmedFile, "dokumen");
+    } else if (state.sosmedRemoveFile) {
+      fileUrl = "";
+    }
 
     const payload = {
       tiktok: sosmedTiktok.value.trim(),
       instagram: sosmedInstagram.value.trim(),
       email: sosmedEmail.value.trim(),
+      file_url: fileUrl || null,
     };
 
     let opError = null;
 
-    if (existing && existing.id) {
-      const { error } = await supabaseClient.from("sosmed").update(payload).eq("id", existing.id);
+    if (state.sosmedExistingId) {
+      const { error } = await supabaseClient.from("sosmed").update(payload).eq("id", state.sosmedExistingId);
       opError = error;
     } else {
-      const { error } = await supabaseClient.from("sosmed").insert([payload]);
+      const { data: inserted, error } = await supabaseClient.from("sosmed").insert([payload]).select().maybeSingle();
       opError = error;
+      if (inserted && inserted.id) state.sosmedExistingId = inserted.id;
     }
 
     if (opError) throw opError;
+
+    state.sosmedFile = null;
+    state.sosmedRemoveFile = false;
+    state.sosmedExistingFileUrl = fileUrl;
+    sosmedFileInput.value = "";
+    sosmedFileSelectedHint.textContent = "";
+    renderSosmedFileCurrent();
 
     showToast("Tautan sosmed berhasil diperbarui.");
   } catch (err) {
@@ -442,9 +887,9 @@ async function saveSosmed(e) {
 }
 
 /* -----------------------------------------------------------
-   10. HELPER: ITEM ROW UI (Kegiatan / Prestasi list)
+   13. HELPER: ITEM ROW UI (Kegiatan / Prestasi list)
 ----------------------------------------------------------- */
-function makeItemRow({ title, subtitle, onDelete }) {
+function makeItemRow({ title, subtitle, hasMedia, onEdit, onDelete }) {
   const row = document.createElement("div");
   row.className = "admin-item-row";
 
@@ -454,6 +899,12 @@ function makeItemRow({ title, subtitle, onDelete }) {
   const titleEl = document.createElement("p");
   titleEl.className = "item-title";
   titleEl.textContent = escapeText(title);
+  if (hasMedia) {
+    const mediaTag = document.createElement("span");
+    mediaTag.className = "item-media-tag";
+    mediaTag.innerHTML = '<i class="fa-solid fa-photo-film"></i>';
+    titleEl.appendChild(mediaTag);
+  }
 
   const subEl = document.createElement("p");
   subEl.className = "item-sub";
@@ -461,13 +912,23 @@ function makeItemRow({ title, subtitle, onDelete }) {
 
   info.append(titleEl, subEl);
 
+  const actions = document.createElement("div");
+  actions.className = "item-actions";
+
+  const editBtn = document.createElement("button");
+  editBtn.type = "button";
+  editBtn.className = "btn-edit-item";
+  editBtn.innerHTML = '<i class="fa-solid fa-pen"></i> Edit';
+  editBtn.addEventListener("click", onEdit);
+
   const deleteBtn = document.createElement("button");
   deleteBtn.type = "button";
   deleteBtn.className = "btn-delete";
   deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i> Hapus';
   deleteBtn.addEventListener("click", onDelete);
 
-  row.append(info, deleteBtn);
+  actions.append(editBtn, deleteBtn);
+  row.append(info, actions);
   return row;
 }
 
@@ -479,14 +940,14 @@ function makeEmptyRow(message) {
 }
 
 /* -----------------------------------------------------------
-   11. LOAD SEMUA DATA DASHBOARD
+   14. LOAD SEMUA DATA DASHBOARD
 ----------------------------------------------------------- */
 async function loadAllAdminData() {
   await Promise.all([loadProfile(), loadKegiatan(), loadPrestasi(), loadSosmed()]);
 }
 
 /* -----------------------------------------------------------
-   12. EVENT LISTENERS & INIT
+   15. EVENT LISTENERS & INIT
 ----------------------------------------------------------- */
 document.addEventListener("DOMContentLoaded", () => {
   if (isLoggedIn()) {
@@ -499,7 +960,18 @@ document.addEventListener("DOMContentLoaded", () => {
   logoutBtn.addEventListener("click", handleLogout);
 
   saveProfileBtn.addEventListener("click", saveProfile);
-  kegiatanForm.addEventListener("submit", addKegiatan);
-  prestasiForm.addEventListener("submit", addPrestasi);
+  profilePhotoInput.addEventListener("change", handleProfilePhotoInputChange);
+
+  kegiatanForm.addEventListener("submit", submitKegiatan);
+  kegiatanCancelBtn.addEventListener("click", cancelEditKegiatan);
+  kegiatanMediaInput.addEventListener("change", handleKegiatanMediaInputChange);
+  kegiatanMediaRemoveBtn.addEventListener("click", handleKegiatanMediaRemoveClick);
+
+  prestasiForm.addEventListener("submit", submitPrestasi);
+  prestasiCancelBtn.addEventListener("click", cancelEditPrestasi);
+  prestasiMediaInput.addEventListener("change", handlePrestasiMediaInputChange);
+  prestasiMediaRemoveBtn.addEventListener("click", handlePrestasiMediaRemoveClick);
+
   sosmedForm.addEventListener("submit", saveSosmed);
+  sosmedFileInput.addEventListener("change", handleSosmedFileInputChange);
 });

@@ -47,6 +47,21 @@
     <!-- Profile -->
     <section class="admin-panel">
       <h2><i class="fa-solid fa-user"></i> Tentang Saya</h2>
+
+      <div class="media-upload-row">
+        <div class="media-preview-box" id="profile-photo-preview-box">
+          <img id="profile-photo-preview" alt="Pratinjau foto profil" class="media-preview-img hidden" />
+          <span class="media-preview-placeholder" id="profile-photo-placeholder"><i class="fa-solid fa-image"></i></span>
+        </div>
+        <div class="media-upload-controls">
+          <label for="profile-photo-input" class="btn-upload">
+            <i class="fa-solid fa-upload"></i>&nbsp; Pilih Foto Baru
+          </label>
+          <input type="file" id="profile-photo-input" accept="image/*" class="hidden-file-input" />
+          <p class="media-hint">Format JPG/PNG/WebP, maks. 8MB. Foto ini tampil di beranda (Hero).</p>
+        </div>
+      </div>
+
       <div class="form-group">
         <label for="profile-textarea">Deskripsi profil</label>
         <textarea id="profile-textarea" placeholder="Tuliskan deskripsi tentang diri Anda..."></textarea>
@@ -63,6 +78,8 @@
       </div>
 
       <form id="kegiatan-form" class="admin-inline-form two-col" novalidate>
+        <input type="hidden" id="kegiatan-edit-id" value="" />
+
         <div class="form-group">
           <label for="kegiatan-judul">Judul</label>
           <input type="text" id="kegiatan-judul" required />
@@ -75,8 +92,31 @@
           <label for="kegiatan-deskripsi">Deskripsi</label>
           <textarea id="kegiatan-deskripsi" placeholder="Deskripsi singkat kegiatan..."></textarea>
         </div>
-        <div class="full">
+
+        <div class="form-group full">
+          <label>Gambar atau Video (opsional)</label>
+          <div class="media-upload-row">
+            <div class="media-preview-box" id="kegiatan-media-preview-box">
+              <img id="kegiatan-media-preview-img" class="media-preview-img hidden" alt="Pratinjau media kegiatan" />
+              <video id="kegiatan-media-preview-video" class="media-preview-img hidden" muted controls></video>
+              <span class="media-preview-placeholder" id="kegiatan-media-placeholder"><i class="fa-solid fa-photo-film"></i></span>
+              <button type="button" class="media-remove-btn hidden" id="kegiatan-media-remove-btn" title="Hapus media">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <div class="media-upload-controls">
+              <label for="kegiatan-media-input" class="btn-upload">
+                <i class="fa-solid fa-upload"></i>&nbsp; Pilih Gambar / Video
+              </label>
+              <input type="file" id="kegiatan-media-input" accept="image/*,video/*" class="hidden-file-input" />
+              <p class="media-hint">Gambar maks. 8MB, video maks. 50MB.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="full admin-form-actions">
           <button type="submit" class="btn-save" id="kegiatan-submit-btn">Tambah Kegiatan</button>
+          <button type="button" class="btn-cancel-edit hidden" id="kegiatan-cancel-btn">Batal Edit</button>
         </div>
       </form>
     </section>
@@ -90,6 +130,8 @@
       </div>
 
       <form id="prestasi-form" class="admin-inline-form two-col" novalidate>
+        <input type="hidden" id="prestasi-edit-id" value="" />
+
         <div class="form-group">
           <label for="prestasi-nama">Nama Prestasi</label>
           <input type="text" id="prestasi-nama" required />
@@ -102,8 +144,31 @@
           <label for="prestasi-deskripsi">Deskripsi Singkat</label>
           <textarea id="prestasi-deskripsi" placeholder="Deskripsi singkat prestasi..."></textarea>
         </div>
-        <div class="full">
+
+        <div class="form-group full">
+          <label>Gambar atau Video (opsional)</label>
+          <div class="media-upload-row">
+            <div class="media-preview-box" id="prestasi-media-preview-box">
+              <img id="prestasi-media-preview-img" class="media-preview-img hidden" alt="Pratinjau media prestasi" />
+              <video id="prestasi-media-preview-video" class="media-preview-img hidden" muted controls></video>
+              <span class="media-preview-placeholder" id="prestasi-media-placeholder"><i class="fa-solid fa-photo-film"></i></span>
+              <button type="button" class="media-remove-btn hidden" id="prestasi-media-remove-btn" title="Hapus media">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <div class="media-upload-controls">
+              <label for="prestasi-media-input" class="btn-upload">
+                <i class="fa-solid fa-upload"></i>&nbsp; Pilih Gambar / Video
+              </label>
+              <input type="file" id="prestasi-media-input" accept="image/*,video/*" class="hidden-file-input" />
+              <p class="media-hint">Gambar maks. 8MB, video maks. 50MB.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="full admin-form-actions">
           <button type="submit" class="btn-save" id="prestasi-submit-btn">Tambah Prestasi</button>
+          <button type="button" class="btn-cancel-edit hidden" id="prestasi-cancel-btn">Batal Edit</button>
         </div>
       </form>
     </section>
@@ -124,6 +189,19 @@
           <label for="sosmed-email">Alamat Email</label>
           <input type="email" id="sosmed-email" placeholder="nama@email.com" />
         </div>
+
+        <div class="form-group">
+          <label>File Tambahan (CV / Dokumen, opsional)</label>
+          <div class="file-upload-row" id="sosmed-file-current">
+            <span class="empty-text file-empty-inline" id="sosmed-file-empty-text">Belum ada file diunggah.</span>
+          </div>
+          <label for="sosmed-file-input" class="btn-upload">
+            <i class="fa-solid fa-upload"></i>&nbsp; Pilih File (PDF/Gambar)
+          </label>
+          <input type="file" id="sosmed-file-input" accept=".pdf,image/*,.doc,.docx" class="hidden-file-input" />
+          <p class="media-hint" id="sosmed-file-selected-hint"></p>
+        </div>
+
         <div>
           <button type="submit" class="btn-save" id="sosmed-submit-btn">Simpan Sosmed</button>
         </div>

@@ -64,6 +64,7 @@ function escapeText(value) {
 ----------------------------------------------------------- */
 async function fetchProfile() {
   const aboutEl = document.getElementById("about-text");
+  const photoEl = document.getElementById("profile-photo");
   if (!aboutEl) return;
 
   if (!supabaseClient) {
@@ -79,6 +80,10 @@ async function fetchProfile() {
       .maybeSingle();
 
     if (error) throw error;
+
+    if (data && data.foto_url && photoEl) {
+      photoEl.src = data.foto_url;
+    }
 
     if (!data || !data.deskripsi) {
       aboutEl.textContent =
@@ -123,9 +128,31 @@ async function fetchKegiatan() {
       const card = document.createElement("article");
       card.className = "kegiatan-card";
 
-      const icon = document.createElement("div");
-      icon.className = "kegiatan-card-icon";
-      icon.innerHTML = '<i class="fa-solid fa-bolt"></i>';
+      if (item.media_url) {
+        const mediaWrap = document.createElement("div");
+        mediaWrap.className = "kegiatan-card-media";
+
+        if (item.media_type === "video") {
+          const video = document.createElement("video");
+          video.src = item.media_url;
+          video.controls = true;
+          video.preload = "metadata";
+          mediaWrap.appendChild(video);
+        } else {
+          const img = document.createElement("img");
+          img.src = item.media_url;
+          img.alt = escapeText(item.judul || "Kegiatan");
+          img.loading = "lazy";
+          mediaWrap.appendChild(img);
+        }
+
+        card.appendChild(mediaWrap);
+      } else {
+        const icon = document.createElement("div");
+        icon.className = "kegiatan-card-icon";
+        icon.innerHTML = '<i class="fa-solid fa-bolt"></i>';
+        card.appendChild(icon);
+      }
 
       const meta = document.createElement("span");
       meta.className = "kegiatan-card-meta";
@@ -139,7 +166,7 @@ async function fetchKegiatan() {
       desc.className = "kegiatan-card-desc";
       desc.textContent = escapeText(item.deskripsi || "Deskripsi belum tersedia.");
 
-      card.append(icon, meta, title, desc);
+      card.append(meta, title, desc);
       return card;
     });
 
@@ -195,6 +222,28 @@ async function fetchPrestasi() {
       desc.textContent = escapeText(item.deskripsi || "Deskripsi belum tersedia.");
 
       wrap.append(year, title, desc);
+
+      if (item.media_url) {
+        const mediaWrap = document.createElement("div");
+        mediaWrap.className = "prestasi-media";
+
+        if (item.media_type === "video") {
+          const video = document.createElement("video");
+          video.src = item.media_url;
+          video.controls = true;
+          video.preload = "metadata";
+          mediaWrap.appendChild(video);
+        } else {
+          const img = document.createElement("img");
+          img.src = item.media_url;
+          img.alt = escapeText(item.nama || "Prestasi");
+          img.loading = "lazy";
+          mediaWrap.appendChild(img);
+        }
+
+        wrap.appendChild(mediaWrap);
+      }
+
       return wrap;
     });
 
@@ -245,6 +294,10 @@ async function fetchSosmed() {
     if (data.email) {
       const mailHref = data.email.startsWith("mailto:") ? data.email : `mailto:${data.email}`;
       links.push({ url: mailHref, label: "Email", icon: "fa-solid fa-envelope" });
+    }
+
+    if (data.file_url) {
+      links.push({ url: data.file_url, label: "Unduh CV", icon: "fa-solid fa-file-arrow-down" });
     }
 
     if (links.length === 0) {
