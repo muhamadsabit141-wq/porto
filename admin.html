@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
   <title>Admin Dashboard | Raja Subhan Alpariz</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link rel="stylesheet" href="style.css" />
@@ -16,23 +17,25 @@
 </head>
 <body class="admin-body">
 
-  <!-- ================= LOGIN SECTION ================= -->
+  <!-- ================= LOGIN SECTION (Supabase Auth) ================= -->
   <div class="admin-login-wrap" id="login-section">
-    <div class="admin-card">
+    <div class="admin-login-card">
+      <div class="admin-login-badge"><i class="fa-solid fa-shield-halved"></i></div>
       <h1>Admin Dashboard</h1>
-      <p class="admin-subtitle">Masuk untuk mengelola konten portfolio.</p>
+      <p class="admin-subtitle">Masuk dengan akun yang terdaftar di Supabase Authentication.</p>
 
       <form id="login-form" novalidate>
         <div class="form-group">
-          <label for="login-username">Username</label>
-          <input type="text" id="login-username" name="username" autocomplete="username" required />
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" name="email" autocomplete="username" required />
         </div>
         <div class="form-group">
           <label for="login-password">Password</label>
           <input type="password" id="login-password" name="password" autocomplete="current-password" required />
         </div>
         <p class="form-error" id="login-error"></p>
-        <button type="submit" class="btn-save" id="login-submit-btn" style="width:100%;">Masuk</button>
+        <button type="submit" class="btn-save btn-full" id="login-submit-btn">Masuk</button>
+        <p class="form-hint">Belum punya akun admin? Buat lewat Supabase Dashboard &rarr; Authentication &rarr; Add user.</p>
       </form>
     </div>
   </div>
@@ -40,173 +43,290 @@
   <!-- ================= DASHBOARD SECTION ================= -->
   <div class="admin-shell hidden" id="dashboard-section">
     <div class="admin-topbar">
-      <h1>Dashboard Admin</h1>
+      <div class="admin-topbar-left">
+        <h1>Dashboard Admin</h1>
+        <p id="admin-session-email">Masuk sebagai ...</p>
+      </div>
       <button class="btn-logout" id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i>&nbsp; Keluar</button>
     </div>
 
-    <!-- Profile -->
-    <section class="admin-panel">
-      <h2><i class="fa-solid fa-user"></i> Tentang Saya</h2>
+    <div class="admin-stats" id="admin-stats">
+      <div class="admin-stat-card"><div class="admin-stat-num" id="admin-stat-pendidikan">0</div><div class="admin-stat-label">Pendidikan</div></div>
+      <div class="admin-stat-card"><div class="admin-stat-num" id="admin-stat-organisasi">0</div><div class="admin-stat-label">Organisasi</div></div>
+      <div class="admin-stat-card"><div class="admin-stat-num" id="admin-stat-kegiatan">0</div><div class="admin-stat-label">Kegiatan</div></div>
+      <div class="admin-stat-card"><div class="admin-stat-num" id="admin-stat-prestasi">0</div><div class="admin-stat-label">Prestasi</div></div>
+    </div>
 
-      <div class="media-upload-row">
-        <div class="media-preview-box" id="profile-photo-preview-box">
-          <img id="profile-photo-preview" alt="Pratinjau foto profil" class="media-preview-img hidden" />
-          <span class="media-preview-placeholder" id="profile-photo-placeholder"><i class="fa-solid fa-image"></i></span>
-        </div>
-        <div class="media-upload-controls">
-          <label for="profile-photo-input" class="btn-upload">
-            <i class="fa-solid fa-upload"></i>&nbsp; Pilih Foto Baru
-          </label>
-          <input type="file" id="profile-photo-input" accept="image/*" class="hidden-file-input" />
-          <p class="media-hint">Format JPG/PNG/WebP, maks. 8MB. Foto ini tampil di beranda (Hero).</p>
-        </div>
-      </div>
+    <!-- Tabs -->
+    <div class="admin-tabs" id="admin-tabs">
+      <button type="button" class="admin-tab-btn active" data-tab="profil">Profil</button>
+      <button type="button" class="admin-tab-btn" data-tab="pendidikan">Pendidikan</button>
+      <button type="button" class="admin-tab-btn" data-tab="organisasi">Organisasi</button>
+      <button type="button" class="admin-tab-btn" data-tab="kegiatan">Kegiatan</button>
+      <button type="button" class="admin-tab-btn" data-tab="prestasi">Prestasi</button>
+      <button type="button" class="admin-tab-btn" data-tab="sosmed">Sosmed &amp; Kontak</button>
+    </div>
 
-      <div class="form-group">
-        <label for="profile-textarea">Deskripsi profil</label>
-        <textarea id="profile-textarea" placeholder="Tuliskan deskripsi tentang diri Anda..."></textarea>
-      </div>
-      <button type="button" class="btn-save" id="save-profile-btn">Simpan Profil</button>
-    </section>
+    <!-- ===== TAB: PROFIL ===== -->
+    <div class="admin-tab-panel active" data-tab-panel="profil">
+      <section class="admin-panel">
+        <h2><i class="fa-solid fa-user"></i> Profil Utama</h2>
+        <p class="admin-panel-desc">Data ini tampil di Beranda dan halaman Tentang Saya.</p>
 
-    <!-- Kegiatan -->
-    <section class="admin-panel">
-      <h2><i class="fa-solid fa-bolt"></i> Kegiatan</h2>
-
-      <div class="admin-item-list" id="kegiatan-list">
-        <p class="loading-text">Memuat data kegiatan...</p>
-      </div>
-
-      <form id="kegiatan-form" class="admin-inline-form two-col" novalidate>
-        <input type="hidden" id="kegiatan-edit-id" value="" />
-
-        <div class="form-group">
-          <label for="kegiatan-judul">Judul</label>
-          <input type="text" id="kegiatan-judul" required />
-        </div>
-        <div class="form-group">
-          <label for="kegiatan-kategori">Kategori / Tanggal</label>
-          <input type="text" id="kegiatan-kategori" placeholder="mis. Organisasi, 2026" />
-        </div>
-        <div class="form-group full">
-          <label for="kegiatan-deskripsi">Deskripsi</label>
-          <textarea id="kegiatan-deskripsi" placeholder="Deskripsi singkat kegiatan..."></textarea>
+        <div class="media-upload-row">
+          <div class="media-preview-box" id="profile-photo-preview-box">
+            <img id="profile-photo-preview" alt="Pratinjau foto profil" class="media-preview-img hidden" />
+            <span class="media-preview-placeholder" id="profile-photo-placeholder"><i class="fa-solid fa-image"></i></span>
+          </div>
+          <div class="media-upload-controls">
+            <label for="profile-photo-input" class="btn-upload"><i class="fa-solid fa-upload"></i>&nbsp; Pilih Foto Baru</label>
+            <input type="file" id="profile-photo-input" accept="image/*" class="hidden-file-input" />
+            <p class="media-hint">Format JPG/PNG/WebP, maks. 8MB.</p>
+          </div>
         </div>
 
-        <div class="form-group full">
-          <label>Gambar atau Video (opsional)</label>
-          <div class="media-upload-row">
-            <div class="media-preview-box" id="kegiatan-media-preview-box">
-              <img id="kegiatan-media-preview-img" class="media-preview-img hidden" alt="Pratinjau media kegiatan" />
-              <video id="kegiatan-media-preview-video" class="media-preview-img hidden" muted controls></video>
-              <span class="media-preview-placeholder" id="kegiatan-media-placeholder"><i class="fa-solid fa-photo-film"></i></span>
-              <button type="button" class="media-remove-btn hidden" id="kegiatan-media-remove-btn" title="Hapus media">
-                <i class="fa-solid fa-xmark"></i>
+        <div class="admin-inline-form two-col">
+          <div class="form-group">
+            <label for="profile-nama">Nama Lengkap</label>
+            <input type="text" id="profile-nama" placeholder="Raja Subhan Alpariz" />
+          </div>
+          <div class="form-group">
+            <label for="profile-kampus">Kampus</label>
+            <input type="text" id="profile-kampus" placeholder="STIES KHAS Kempek Al-Jaelani" />
+          </div>
+          <div class="form-group">
+            <label for="profile-jurusan">Program Studi</label>
+            <input type="text" id="profile-jurusan" placeholder="mis. Ekonomi Syariah" />
+          </div>
+          <div class="form-group">
+            <label for="profile-tagline">Tagline Singkat</label>
+            <input type="text" id="profile-tagline" placeholder="Muncul di bawah nama pada Beranda" />
+          </div>
+          <div class="form-group full">
+            <label for="profile-textarea">Deskripsi "Tentang Saya"</label>
+            <textarea id="profile-textarea" placeholder="Tuliskan deskripsi tentang diri Anda..."></textarea>
+          </div>
+        </div>
+        <button type="button" class="btn-save" id="save-profile-btn">Simpan Profil</button>
+      </section>
+    </div>
+
+    <!-- ===== TAB: PENDIDIKAN ===== -->
+    <div class="admin-tab-panel" data-tab-panel="pendidikan">
+      <section class="admin-panel">
+        <h2><i class="fa-solid fa-graduation-cap"></i> Riwayat Pendidikan</h2>
+        <p class="admin-panel-desc">Gunakan panah atas/bawah untuk mengatur urutan tampil.</p>
+
+        <div class="admin-item-list" id="pendidikan-list">
+          <p class="loading-text">Memuat data pendidikan...</p>
+        </div>
+
+        <form id="pendidikan-form" class="admin-inline-form two-col" novalidate>
+          <input type="hidden" id="pendidikan-edit-id" value="" />
+          <div class="form-group">
+            <label for="pendidikan-institusi">Institusi</label>
+            <input type="text" id="pendidikan-institusi" required />
+          </div>
+          <div class="form-group">
+            <label for="pendidikan-jenjang">Jenjang</label>
+            <input type="text" id="pendidikan-jenjang" placeholder="mis. S1, SMA, Pesantren" />
+          </div>
+          <div class="form-group">
+            <label for="pendidikan-tahun-mulai">Tahun Mulai</label>
+            <input type="text" id="pendidikan-tahun-mulai" placeholder="2022" />
+          </div>
+          <div class="form-group">
+            <label for="pendidikan-tahun-selesai">Tahun Selesai</label>
+            <input type="text" id="pendidikan-tahun-selesai" placeholder="Sekarang / 2026" />
+          </div>
+          <div class="form-group full">
+            <label for="pendidikan-deskripsi">Deskripsi</label>
+            <textarea id="pendidikan-deskripsi" placeholder="Deskripsi singkat..."></textarea>
+          </div>
+          <div class="full admin-form-actions">
+            <button type="submit" class="btn-save" id="pendidikan-submit-btn">Tambah Pendidikan</button>
+            <button type="button" class="btn-cancel-edit hidden" id="pendidikan-cancel-btn">Batal Edit</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <!-- ===== TAB: ORGANISASI ===== -->
+    <div class="admin-tab-panel" data-tab-panel="organisasi">
+      <section class="admin-panel">
+        <h2><i class="fa-solid fa-people-group"></i> Organisasi &amp; Jabatan</h2>
+        <p class="admin-panel-desc">Gunakan panah atas/bawah untuk mengatur urutan tampil.</p>
+
+        <div class="admin-item-list" id="organisasi-list">
+          <p class="loading-text">Memuat data organisasi...</p>
+        </div>
+
+        <form id="organisasi-form" class="admin-inline-form two-col" novalidate>
+          <input type="hidden" id="organisasi-edit-id" value="" />
+
+          <div class="form-group full">
+            <label>Logo Organisasi (opsional)</label>
+            <div class="media-upload-row">
+              <div class="media-preview-box" id="organisasi-logo-preview-box">
+                <img id="organisasi-logo-preview-img" class="media-preview-img hidden" alt="Pratinjau logo" />
+                <span class="media-preview-placeholder" id="organisasi-logo-placeholder"><i class="fa-solid fa-image"></i></span>
+                <button type="button" class="media-remove-btn hidden" id="organisasi-logo-remove-btn"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+              <div class="media-upload-controls">
+                <label for="organisasi-logo-input" class="btn-upload"><i class="fa-solid fa-upload"></i>&nbsp; Pilih Logo</label>
+                <input type="file" id="organisasi-logo-input" accept="image/*" class="hidden-file-input" />
+                <p class="media-hint">Gambar maks. 8MB.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="organisasi-nama">Nama Organisasi</label>
+            <input type="text" id="organisasi-nama" required />
+          </div>
+          <div class="form-group">
+            <label for="organisasi-jabatan">Jabatan</label>
+            <input type="text" id="organisasi-jabatan" placeholder="mis. Ketua Divisi" />
+          </div>
+          <div class="form-group full">
+            <label for="organisasi-periode">Periode</label>
+            <input type="text" id="organisasi-periode" placeholder="mis. 2024 – 2025" />
+          </div>
+          <div class="form-group full">
+            <label for="organisasi-deskripsi">Deskripsi</label>
+            <textarea id="organisasi-deskripsi" placeholder="Deskripsi peran/kontribusi..."></textarea>
+          </div>
+          <div class="full admin-form-actions">
+            <button type="submit" class="btn-save" id="organisasi-submit-btn">Tambah Organisasi</button>
+            <button type="button" class="btn-cancel-edit hidden" id="organisasi-cancel-btn">Batal Edit</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <!-- ===== TAB: KEGIATAN ===== -->
+    <div class="admin-tab-panel" data-tab-panel="kegiatan">
+      <section class="admin-panel">
+        <h2><i class="fa-solid fa-bolt"></i> Kegiatan</h2>
+        <p class="admin-panel-desc">Gunakan panah atas/bawah untuk mengatur urutan tampil.</p>
+
+        <div class="admin-item-list" id="kegiatan-list">
+          <p class="loading-text">Memuat data kegiatan...</p>
+        </div>
+
+        <form id="kegiatan-form" class="admin-inline-form two-col" novalidate>
+          <input type="hidden" id="kegiatan-edit-id" value="" />
+
+          <div class="form-group">
+            <label for="kegiatan-judul">Judul</label>
+            <input type="text" id="kegiatan-judul" required />
+          </div>
+          <div class="form-group">
+            <label for="kegiatan-kategori">Kategori / Tanggal</label>
+            <input type="text" id="kegiatan-kategori" placeholder="mis. Organisasi, 2026" />
+          </div>
+          <div class="form-group full">
+            <label for="kegiatan-deskripsi">Deskripsi</label>
+            <textarea id="kegiatan-deskripsi" placeholder="Deskripsi singkat kegiatan..."></textarea>
+          </div>
+
+          <div class="form-group full">
+            <label>Galeri Gambar / Video (boleh lebih dari satu)</label>
+            <div class="gallery-upload-grid" id="kegiatan-gallery-grid">
+              <button type="button" class="gallery-add-btn" id="kegiatan-gallery-add-btn">
+                <i class="fa-solid fa-plus"></i> Tambah
               </button>
             </div>
-            <div class="media-upload-controls">
-              <label for="kegiatan-media-input" class="btn-upload">
-                <i class="fa-solid fa-upload"></i>&nbsp; Pilih Gambar / Video
-              </label>
-              <input type="file" id="kegiatan-media-input" accept="image/*,video/*" class="hidden-file-input" />
-              <p class="media-hint">Gambar maks. 8MB, video maks. 50MB.</p>
-            </div>
+            <input type="file" id="kegiatan-gallery-input" accept="image/*,video/*" multiple class="hidden-file-input" />
+            <p class="media-hint">Gambar maks. 8MB, video maks. 50MB per file.</p>
           </div>
+
+          <div class="full admin-form-actions">
+            <button type="submit" class="btn-save" id="kegiatan-submit-btn">Tambah Kegiatan</button>
+            <button type="button" class="btn-cancel-edit hidden" id="kegiatan-cancel-btn">Batal Edit</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <!-- ===== TAB: PRESTASI ===== -->
+    <div class="admin-tab-panel" data-tab-panel="prestasi">
+      <section class="admin-panel">
+        <h2><i class="fa-solid fa-trophy"></i> Prestasi</h2>
+        <p class="admin-panel-desc">Gunakan panah atas/bawah untuk mengatur urutan tampil.</p>
+
+        <div class="admin-item-list" id="prestasi-list">
+          <p class="loading-text">Memuat data prestasi...</p>
         </div>
 
-        <div class="full admin-form-actions">
-          <button type="submit" class="btn-save" id="kegiatan-submit-btn">Tambah Kegiatan</button>
-          <button type="button" class="btn-cancel-edit hidden" id="kegiatan-cancel-btn">Batal Edit</button>
-        </div>
-      </form>
-    </section>
+        <form id="prestasi-form" class="admin-inline-form two-col" novalidate>
+          <input type="hidden" id="prestasi-edit-id" value="" />
 
-    <!-- Prestasi -->
-    <section class="admin-panel">
-      <h2><i class="fa-solid fa-trophy"></i> Prestasi</h2>
+          <div class="form-group">
+            <label for="prestasi-nama">Nama Prestasi</label>
+            <input type="text" id="prestasi-nama" required />
+          </div>
+          <div class="form-group">
+            <label for="prestasi-tahun">Tahun</label>
+            <input type="text" id="prestasi-tahun" placeholder="mis. 2025" required />
+          </div>
+          <div class="form-group full">
+            <label for="prestasi-deskripsi">Deskripsi Singkat</label>
+            <textarea id="prestasi-deskripsi" placeholder="Deskripsi singkat prestasi..."></textarea>
+          </div>
 
-      <div class="admin-item-list" id="prestasi-list">
-        <p class="loading-text">Memuat data prestasi...</p>
-      </div>
-
-      <form id="prestasi-form" class="admin-inline-form two-col" novalidate>
-        <input type="hidden" id="prestasi-edit-id" value="" />
-
-        <div class="form-group">
-          <label for="prestasi-nama">Nama Prestasi</label>
-          <input type="text" id="prestasi-nama" required />
-        </div>
-        <div class="form-group">
-          <label for="prestasi-tahun">Tahun</label>
-          <input type="text" id="prestasi-tahun" placeholder="mis. 2025" required />
-        </div>
-        <div class="form-group full">
-          <label for="prestasi-deskripsi">Deskripsi Singkat</label>
-          <textarea id="prestasi-deskripsi" placeholder="Deskripsi singkat prestasi..."></textarea>
-        </div>
-
-        <div class="form-group full">
-          <label>Gambar atau Video (opsional)</label>
-          <div class="media-upload-row">
-            <div class="media-preview-box" id="prestasi-media-preview-box">
-              <img id="prestasi-media-preview-img" class="media-preview-img hidden" alt="Pratinjau media prestasi" />
-              <video id="prestasi-media-preview-video" class="media-preview-img hidden" muted controls></video>
-              <span class="media-preview-placeholder" id="prestasi-media-placeholder"><i class="fa-solid fa-photo-film"></i></span>
-              <button type="button" class="media-remove-btn hidden" id="prestasi-media-remove-btn" title="Hapus media">
-                <i class="fa-solid fa-xmark"></i>
+          <div class="form-group full">
+            <label>Galeri Gambar / Video (boleh lebih dari satu)</label>
+            <div class="gallery-upload-grid" id="prestasi-gallery-grid">
+              <button type="button" class="gallery-add-btn" id="prestasi-gallery-add-btn">
+                <i class="fa-solid fa-plus"></i> Tambah
               </button>
             </div>
-            <div class="media-upload-controls">
-              <label for="prestasi-media-input" class="btn-upload">
-                <i class="fa-solid fa-upload"></i>&nbsp; Pilih Gambar / Video
-              </label>
-              <input type="file" id="prestasi-media-input" accept="image/*,video/*" class="hidden-file-input" />
-              <p class="media-hint">Gambar maks. 8MB, video maks. 50MB.</p>
+            <input type="file" id="prestasi-gallery-input" accept="image/*,video/*" multiple class="hidden-file-input" />
+            <p class="media-hint">Gambar maks. 8MB, video maks. 50MB per file.</p>
+          </div>
+
+          <div class="full admin-form-actions">
+            <button type="submit" class="btn-save" id="prestasi-submit-btn">Tambah Prestasi</button>
+            <button type="button" class="btn-cancel-edit hidden" id="prestasi-cancel-btn">Batal Edit</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <!-- ===== TAB: SOSMED ===== -->
+    <div class="admin-tab-panel" data-tab-panel="sosmed">
+      <section class="admin-panel">
+        <h2><i class="fa-solid fa-share-nodes"></i> Sosmed &amp; Kontak</h2>
+        <form id="sosmed-form" class="admin-inline-form" novalidate>
+          <div class="form-group">
+            <label for="sosmed-tiktok">URL TikTok</label>
+            <input type="url" id="sosmed-tiktok" placeholder="https://tiktok.com/@username" />
+          </div>
+          <div class="form-group">
+            <label for="sosmed-instagram">URL Instagram</label>
+            <input type="url" id="sosmed-instagram" placeholder="https://instagram.com/username" />
+          </div>
+          <div class="form-group">
+            <label for="sosmed-email">Alamat Email</label>
+            <input type="email" id="sosmed-email" placeholder="nama@email.com" />
+          </div>
+
+          <div class="form-group">
+            <label>File Tambahan (CV / Dokumen, opsional)</label>
+            <div class="file-upload-row" id="sosmed-file-current">
+              <span class="empty-text file-empty-inline" id="sosmed-file-empty-text">Belum ada file diunggah.</span>
             </div>
+            <label for="sosmed-file-input" class="btn-upload"><i class="fa-solid fa-upload"></i>&nbsp; Pilih File (PDF/Gambar)</label>
+            <input type="file" id="sosmed-file-input" accept=".pdf,image/*,.doc,.docx" class="hidden-file-input" />
+            <p class="media-hint" id="sosmed-file-selected-hint"></p>
           </div>
-        </div>
 
-        <div class="full admin-form-actions">
-          <button type="submit" class="btn-save" id="prestasi-submit-btn">Tambah Prestasi</button>
-          <button type="button" class="btn-cancel-edit hidden" id="prestasi-cancel-btn">Batal Edit</button>
-        </div>
-      </form>
-    </section>
+          <div><button type="submit" class="btn-save" id="sosmed-submit-btn">Simpan Sosmed</button></div>
+        </form>
+      </section>
+    </div>
 
-    <!-- Sosmed -->
-    <section class="admin-panel">
-      <h2><i class="fa-solid fa-share-nodes"></i> Sosmed &amp; Kontak</h2>
-      <form id="sosmed-form" class="admin-inline-form" novalidate>
-        <div class="form-group">
-          <label for="sosmed-tiktok">URL TikTok</label>
-          <input type="url" id="sosmed-tiktok" placeholder="https://tiktok.com/@username" />
-        </div>
-        <div class="form-group">
-          <label for="sosmed-instagram">URL Instagram</label>
-          <input type="url" id="sosmed-instagram" placeholder="https://instagram.com/username" />
-        </div>
-        <div class="form-group">
-          <label for="sosmed-email">Alamat Email</label>
-          <input type="email" id="sosmed-email" placeholder="nama@email.com" />
-        </div>
-
-        <div class="form-group">
-          <label>File Tambahan (CV / Dokumen, opsional)</label>
-          <div class="file-upload-row" id="sosmed-file-current">
-            <span class="empty-text file-empty-inline" id="sosmed-file-empty-text">Belum ada file diunggah.</span>
-          </div>
-          <label for="sosmed-file-input" class="btn-upload">
-            <i class="fa-solid fa-upload"></i>&nbsp; Pilih File (PDF/Gambar)
-          </label>
-          <input type="file" id="sosmed-file-input" accept=".pdf,image/*,.doc,.docx" class="hidden-file-input" />
-          <p class="media-hint" id="sosmed-file-selected-hint"></p>
-        </div>
-
-        <div>
-          <button type="submit" class="btn-save" id="sosmed-submit-btn">Simpan Sosmed</button>
-        </div>
-      </form>
-    </section>
   </div>
 
   <script src="admin.js"></script>

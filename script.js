@@ -1,12 +1,10 @@
 /* =========================================================
-   RAJA SUBHAN ALPARIZ — PORTFOLIO
-   script.js — Public data fetching & DOM rendering
+   RAJA SUBHAN ALPARIZ — PORTFOLIO v2
+   script.js — Routing, data fetching, gallery lightbox
    ========================================================= */
 
 /* -----------------------------------------------------------
    1. KONFIGURASI SUPABASE
-   Ganti dua variabel di bawah ini dengan kredensial project
-   Supabase Anda sendiri (Settings > API di dashboard Supabase).
 ----------------------------------------------------------- */
 const SUPABASE_URL = "https://kpvbbostervhfyhcnojo.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwdmJib3N0ZXJ2aGZ5aGNub2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyMzU4NTYsImV4cCI6MjA5ODgxMTg1Nn0.RgpZVgIv1L-UR3MXjoIwRKr6Qx_GkHuvbxiXWfVnSuw";
@@ -26,11 +24,6 @@ try {
 /* -----------------------------------------------------------
    2. UTILITAS DOM
 ----------------------------------------------------------- */
-
-/**
- * Membersihkan container lalu mengisi dengan node baru.
- * Mencegah duplikasi elemen saat refresh / re-fetch.
- */
 function renderInto(container, nodes) {
   if (!container) return;
   container.innerHTML = "";
@@ -60,50 +53,265 @@ function escapeText(value) {
 }
 
 /* -----------------------------------------------------------
-   3. FETCH: PROFILE (Tentang Saya)
+   3. ROUTING — perpindahan "halaman" tanpa reload / scroll-jump
 ----------------------------------------------------------- */
+const VALID_PAGES = ["beranda", "tentang", "pendidikan", "organisasi", "kegiatan", "prestasi", "kontak"];
+
+function navigateTo(pageId, updateHash = true) {
+  if (!VALID_PAGES.includes(pageId)) pageId = "beranda";
+
+  document.querySelectorAll(".page").forEach((el) => el.classList.remove("active"));
+  const target = document.querySelector(`.page[data-page="${pageId}"]`);
+  if (target) target.classList.add("active");
+
+  document.querySelectorAll(".sidebar-nav-item").forEach((li) => {
+    li.classList.toggle("active", li.getAttribute("data-page") === pageId);
+  });
+
+  if (updateHash) {
+    history.replaceState(null, "", "#" + pageId);
+  }
+
+  const viewport = document.getElementById("page-viewport");
+  if (viewport) viewport.scrollTo({ top: 0, behavior: "instant" });
+  window.scrollTo({ top: 0, behavior: "instant" });
+
+  closeMobileSidebar();
+}
+
+function initRouting() {
+  document.querySelectorAll(".sidebar-nav-link").forEach((link) => {
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      const li = link.closest(".sidebar-nav-item");
+      const pageId = li ? li.getAttribute("data-page") : "beranda";
+      navigateTo(pageId);
+    });
+  });
+
+  document.querySelectorAll("[data-goto]").forEach((btn) => {
+    btn.addEventListener("click", () => navigateTo(btn.getAttribute("data-goto")));
+  });
+
+  const initialHash = window.location.hash.replace("#", "");
+  navigateTo(initialHash || "beranda", false);
+}
+
+/* -----------------------------------------------------------
+   4. MOBILE SIDEBAR TOGGLE
+----------------------------------------------------------- */
+function openMobileSidebar() {
+  document.getElementById("sidebar").classList.add("open");
+  document.getElementById("sidebar-overlay").classList.add("open");
+}
+
+function closeMobileSidebar() {
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("sidebar-overlay").classList.remove("open");
+}
+
+function initMobileSidebar() {
+  const toggle = document.getElementById("mobile-nav-toggle");
+  const overlay = document.getElementById("sidebar-overlay");
+  if (toggle) toggle.addEventListener("click", openMobileSidebar);
+  if (overlay) overlay.addEventListener("click", closeMobileSidebar);
+}
+
+/* -----------------------------------------------------------
+   5. FETCH: PROFILE
+----------------------------------------------------------- */
+function applyNameToHero(nama) {
+  const heroNameEl = document.querySelector(".hero-name");
+  const sidebarNameEl = document.getElementById("sidebar-name");
+  const fullName = nama && nama.trim() ? nama.trim() : "Raja Subhan Alpariz";
+
+  if (sidebarNameEl) sidebarNameEl.textContent = fullName;
+
+  if (heroNameEl) {
+    const words = fullName.split(" ");
+    const lastWord = words.pop();
+    const firstPart = words.join(" ");
+    heroNameEl.innerHTML = `${escapeText(firstPart)} <span class="accent">${escapeText(lastWord)}</span>`;
+  }
+}
+
 async function fetchProfile() {
   const aboutEl = document.getElementById("about-text");
   const photoEl = document.getElementById("profile-photo");
-  if (!aboutEl) return;
+  const avatarEl = document.getElementById("sidebar-avatar");
+  const kampusEl = document.getElementById("fact-kampus");
+  const jurusanEl = document.getElementById("fact-jurusan");
+  const roleEl = document.getElementById("sidebar-role");
 
   if (!supabaseClient) {
-    aboutEl.textContent = "Layanan data sedang tidak tersedia. Silakan coba lagi nanti.";
+    if (aboutEl) aboutEl.textContent = "Layanan data sedang tidak tersedia. Silakan coba lagi nanti.";
+    return;
+  }
+
+  try {
+    const { data, error } = await supabaseClient.from("profile").select("*").limit(1).maybeSingle();
+    if (error) throw error;
+
+    applyNameToHero(data && data.nama);
+
+    if (data && data.foto_url) {
+      if (photoEl) photoEl.src = data.foto_url;
+      if (avatarEl) avatarEl.src = data.foto_url;
+    }
+
+    if (kampusEl) kampusEl.textContent = data && data.kampus ? data.kampus : "Belum diisi";
+    if (jurusanEl) jurusanEl.textContent = data && data.jurusan ? data.jurusan : "Belum diisi";
+    if (roleEl) roleEl.textContent = data && data.kampus ? data.kampus : "STIES KHAS Kempek Al-Jaelani";
+
+    if (!data || !data.deskripsi) {
+      if (aboutEl) aboutEl.textContent = "Profil belum tersedia saat ini. Silakan kembali lagi nanti.";
+    } else if (aboutEl) {
+      aboutEl.textContent = data.deskripsi;
+    }
+
+    initTaglineOnce(data && data.tagline ? data.tagline : "Mahasiswa yang bersemangat berkontribusi dan terus bertumbuh.");
+  } catch (err) {
+    console.error("Gagal memuat data profile:", err);
+    if (aboutEl) aboutEl.textContent = "Terjadi kendala saat memuat profil. Periksa koneksi internet Anda.";
+    initTaglineOnce("Mahasiswa yang bersemangat berkontribusi dan terus bertumbuh.");
+  }
+}
+
+/* -----------------------------------------------------------
+   6. FETCH: PENDIDIKAN
+----------------------------------------------------------- */
+async function fetchPendidikan() {
+  const container = document.getElementById("pendidikan-timeline");
+  if (!container) return;
+
+  if (!supabaseClient) {
+    renderInto(container, createErrorState("Layanan data sedang tidak tersedia."));
     return;
   }
 
   try {
     const { data, error } = await supabaseClient
-      .from("profile")
+      .from("pendidikan")
       .select("*")
-      .limit(1)
-      .maybeSingle();
+      .order("urutan", { ascending: true });
 
     if (error) throw error;
 
-    if (data && data.foto_url && photoEl) {
-      photoEl.src = data.foto_url;
-    }
-
-    if (!data || !data.deskripsi) {
-      aboutEl.textContent =
-        "Profil belum tersedia saat ini. Silakan kembali lagi nanti untuk membaca lebih lanjut tentang saya.";
+    if (!data || data.length === 0) {
+      renderInto(container, createEmptyState("Belum ada riwayat pendidikan yang ditambahkan."));
       return;
     }
 
-    aboutEl.textContent = data.deskripsi;
+    const items = data.map((item) => {
+      const wrap = document.createElement("div");
+      wrap.className = "timeline-item";
+
+      const badge = document.createElement("span");
+      badge.className = "timeline-badge";
+      const periode = [item.tahun_mulai, item.tahun_selesai].filter(Boolean).join(" – ");
+      badge.textContent = periode || "-";
+
+      const title = document.createElement("h3");
+      title.className = "timeline-title";
+      title.textContent = escapeText(item.institusi || "Institusi belum diisi");
+
+      const meta = document.createElement("p");
+      meta.className = "timeline-meta";
+      meta.textContent = escapeText(item.jenjang || "");
+
+      const desc = document.createElement("p");
+      desc.className = "timeline-desc";
+      desc.textContent = escapeText(item.deskripsi || "");
+
+      wrap.append(badge, title, meta, desc);
+      return wrap;
+    });
+
+    renderInto(container, items);
   } catch (err) {
-    console.error("Gagal memuat data profile:", err);
-    aboutEl.textContent =
-      "Terjadi kendala saat memuat profil. Periksa koneksi internet Anda dan muat ulang halaman.";
+    console.error("Gagal memuat pendidikan:", err);
+    renderInto(container, createErrorState("Terjadi kendala saat memuat data pendidikan."));
   }
 }
 
 /* -----------------------------------------------------------
-   4. FETCH: KEGIATAN
+   7. FETCH: ORGANISASI
+----------------------------------------------------------- */
+async function fetchOrganisasi() {
+  const container = document.getElementById("organisasi-grid");
+  const statEl = document.getElementById("stat-organisasi");
+  if (!container) return;
+
+  if (!supabaseClient) {
+    renderInto(container, createErrorState("Layanan data sedang tidak tersedia."));
+    return;
+  }
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("organisasi")
+      .select("*")
+      .order("urutan", { ascending: true });
+
+    if (error) throw error;
+
+    if (statEl) statEl.textContent = data ? data.length : 0;
+
+    if (!data || data.length === 0) {
+      renderInto(container, createEmptyState("Belum ada data organisasi."));
+      return;
+    }
+
+    const cards = data.map((item) => {
+      const card = document.createElement("article");
+      card.className = "org-card";
+
+      const logo = document.createElement("div");
+      logo.className = "org-logo";
+      if (item.logo_url) {
+        const img = document.createElement("img");
+        img.src = item.logo_url;
+        img.alt = escapeText(item.nama_organisasi || "Logo organisasi");
+        logo.appendChild(img);
+      } else {
+        logo.innerHTML = '<i class="fa-solid fa-people-group"></i>';
+      }
+
+      const info = document.createElement("div");
+      const name = document.createElement("h3");
+      name.className = "org-name";
+      name.textContent = escapeText(item.nama_organisasi || "Tanpa nama");
+
+      const role = document.createElement("p");
+      role.className = "org-role";
+      role.textContent = escapeText(item.jabatan || "");
+
+      const period = document.createElement("p");
+      period.className = "org-period";
+      period.textContent = escapeText(item.periode || "");
+
+      const desc = document.createElement("p");
+      desc.className = "org-desc";
+      desc.textContent = escapeText(item.deskripsi || "");
+
+      info.append(name, role, period, desc);
+      card.append(logo, info);
+      return card;
+    });
+
+    renderInto(container, cards);
+  } catch (err) {
+    console.error("Gagal memuat organisasi:", err);
+    renderInto(container, createErrorState("Terjadi kendala saat memuat data organisasi."));
+  }
+}
+
+/* -----------------------------------------------------------
+   8. FETCH: KEGIATAN (+ galeri media)
 ----------------------------------------------------------- */
 async function fetchKegiatan() {
   const container = document.getElementById("kegiatan-grid");
+  const statEl = document.getElementById("stat-kegiatan");
   if (!container) return;
 
   if (!supabaseClient) {
@@ -114,10 +322,13 @@ async function fetchKegiatan() {
   try {
     const { data, error } = await supabaseClient
       .from("kegiatan")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .select("*, kegiatan_media(id, media_url, media_type, urutan)")
+      .order("urutan", { ascending: true })
+      .order("urutan", { foreignTable: "kegiatan_media", ascending: true });
 
     if (error) throw error;
+
+    if (statEl) statEl.textContent = data ? data.length : 0;
 
     if (!data || data.length === 0) {
       renderInto(container, createEmptyState("Belum ada kegiatan yang ditambahkan."));
@@ -125,38 +336,53 @@ async function fetchKegiatan() {
     }
 
     const cards = data.map((item) => {
+      const gallery = Array.isArray(item.kegiatan_media) ? item.kegiatan_media : [];
       const card = document.createElement("article");
       card.className = "kegiatan-card";
 
-      if (item.media_url) {
+      if (gallery.length > 0) {
         const mediaWrap = document.createElement("div");
         mediaWrap.className = "kegiatan-card-media";
 
-        if (item.media_type === "video") {
+        const first = gallery[0];
+        if (first.media_type === "video") {
           const video = document.createElement("video");
-          video.src = item.media_url;
-          video.controls = true;
-          video.preload = "metadata";
+          video.src = first.media_url;
+          video.muted = true;
           mediaWrap.appendChild(video);
         } else {
           const img = document.createElement("img");
-          img.src = item.media_url;
+          img.src = first.media_url;
           img.alt = escapeText(item.judul || "Kegiatan");
           img.loading = "lazy";
           mediaWrap.appendChild(img);
         }
 
+        if (gallery.length > 1) {
+          const countBadge = document.createElement("span");
+          countBadge.className = "gallery-count";
+          countBadge.innerHTML = `<i class="fa-solid fa-images"></i> ${gallery.length}`;
+          mediaWrap.appendChild(countBadge);
+        }
+
+        mediaWrap.addEventListener("click", () => {
+          openLightbox(gallery.map((g) => ({ url: g.media_url, type: g.media_type })), 0);
+        });
+
         card.appendChild(mediaWrap);
       } else {
-        const icon = document.createElement("div");
-        icon.className = "kegiatan-card-icon";
-        icon.innerHTML = '<i class="fa-solid fa-bolt"></i>';
-        card.appendChild(icon);
+        const noImg = document.createElement("div");
+        noImg.className = "kegiatan-card-noimg";
+        noImg.innerHTML = '<i class="fa-solid fa-bolt"></i>';
+        card.appendChild(noImg);
       }
+
+      const body = document.createElement("div");
+      body.className = "kegiatan-card-body";
 
       const meta = document.createElement("span");
       meta.className = "kegiatan-card-meta";
-      meta.textContent = escapeText(item.kategori || item.tanggal || "Kegiatan");
+      meta.textContent = escapeText(item.kategori || "Kegiatan");
 
       const title = document.createElement("h3");
       title.className = "kegiatan-card-title";
@@ -166,25 +392,24 @@ async function fetchKegiatan() {
       desc.className = "kegiatan-card-desc";
       desc.textContent = escapeText(item.deskripsi || "Deskripsi belum tersedia.");
 
-      card.append(meta, title, desc);
+      body.append(meta, title, desc);
+      card.appendChild(body);
       return card;
     });
 
     renderInto(container, cards);
   } catch (err) {
-    console.error("Gagal memuat data kegiatan:", err);
-    renderInto(
-      container,
-      createErrorState("Terjadi kendala saat memuat data kegiatan. Silakan muat ulang halaman.")
-    );
+    console.error("Gagal memuat kegiatan:", err);
+    renderInto(container, createErrorState("Terjadi kendala saat memuat data kegiatan."));
   }
 }
 
 /* -----------------------------------------------------------
-   5. FETCH: PRESTASI
+   9. FETCH: PRESTASI (+ galeri media)
 ----------------------------------------------------------- */
 async function fetchPrestasi() {
   const container = document.getElementById("prestasi-timeline");
+  const statEl = document.getElementById("stat-prestasi");
   if (!container) return;
 
   if (!supabaseClient) {
@@ -195,10 +420,13 @@ async function fetchPrestasi() {
   try {
     const { data, error } = await supabaseClient
       .from("prestasi")
-      .select("*")
-      .order("tahun", { ascending: false });
+      .select("*, prestasi_media(id, media_url, media_type, urutan)")
+      .order("urutan", { ascending: true })
+      .order("urutan", { foreignTable: "prestasi_media", ascending: true });
 
     if (error) throw error;
+
+    if (statEl) statEl.textContent = data ? data.length : 0;
 
     if (!data || data.length === 0) {
       renderInto(container, createEmptyState("Belum ada prestasi yang ditambahkan."));
@@ -206,42 +434,56 @@ async function fetchPrestasi() {
     }
 
     const items = data.map((item) => {
+      const gallery = Array.isArray(item.prestasi_media) ? item.prestasi_media : [];
       const wrap = document.createElement("div");
-      wrap.className = "prestasi-item";
+      wrap.className = "timeline-item";
 
-      const year = document.createElement("span");
-      year.className = "prestasi-year";
-      year.textContent = escapeText(item.tahun || "-");
+      const badge = document.createElement("span");
+      badge.className = "timeline-badge";
+      badge.textContent = escapeText(item.tahun || "-");
 
       const title = document.createElement("h3");
-      title.className = "prestasi-title";
+      title.className = "timeline-title";
       title.textContent = escapeText(item.nama || "Tanpa nama");
 
       const desc = document.createElement("p");
-      desc.className = "prestasi-desc";
+      desc.className = "timeline-desc";
       desc.textContent = escapeText(item.deskripsi || "Deskripsi belum tersedia.");
 
-      wrap.append(year, title, desc);
+      wrap.append(badge, title, desc);
 
-      if (item.media_url) {
-        const mediaWrap = document.createElement("div");
-        mediaWrap.className = "prestasi-media";
+      if (gallery.length > 0) {
+        const galleryWrap = document.createElement("div");
+        galleryWrap.className = "timeline-gallery";
 
-        if (item.media_type === "video") {
-          const video = document.createElement("video");
-          video.src = item.media_url;
-          video.controls = true;
-          video.preload = "metadata";
-          mediaWrap.appendChild(video);
-        } else {
-          const img = document.createElement("img");
-          img.src = item.media_url;
-          img.alt = escapeText(item.nama || "Prestasi");
-          img.loading = "lazy";
-          mediaWrap.appendChild(img);
-        }
+        gallery.forEach((g, idx) => {
+          const thumb = document.createElement("div");
+          thumb.className = "timeline-gallery-thumb";
 
-        wrap.appendChild(mediaWrap);
+          if (g.media_type === "video") {
+            const video = document.createElement("video");
+            video.src = g.media_url;
+            video.muted = true;
+            const badgeIcon = document.createElement("span");
+            badgeIcon.className = "play-badge";
+            badgeIcon.innerHTML = '<i class="fa-solid fa-play"></i>';
+            thumb.append(video, badgeIcon);
+          } else {
+            const img = document.createElement("img");
+            img.src = g.media_url;
+            img.alt = escapeText(item.nama || "Prestasi");
+            img.loading = "lazy";
+            thumb.appendChild(img);
+          }
+
+          thumb.addEventListener("click", () => {
+            openLightbox(gallery.map((m) => ({ url: m.media_url, type: m.media_type })), idx);
+          });
+
+          galleryWrap.appendChild(thumb);
+        });
+
+        wrap.appendChild(galleryWrap);
       }
 
       return wrap;
@@ -249,16 +491,13 @@ async function fetchPrestasi() {
 
     renderInto(container, items);
   } catch (err) {
-    console.error("Gagal memuat data prestasi:", err);
-    renderInto(
-      container,
-      createErrorState("Terjadi kendala saat memuat data prestasi. Silakan muat ulang halaman.")
-    );
+    console.error("Gagal memuat prestasi:", err);
+    renderInto(container, createErrorState("Terjadi kendala saat memuat data prestasi."));
   }
 }
 
 /* -----------------------------------------------------------
-   6. FETCH: SOSMED & KONTAK
+   10. FETCH: SOSMED & KONTAK
 ----------------------------------------------------------- */
 async function fetchSosmed() {
   const container = document.getElementById("sosmed-links");
@@ -270,12 +509,7 @@ async function fetchSosmed() {
   }
 
   try {
-    const { data, error } = await supabaseClient
-      .from("sosmed")
-      .select("*")
-      .limit(1)
-      .maybeSingle();
-
+    const { data, error } = await supabaseClient.from("sosmed").select("*").limit(1).maybeSingle();
     if (error) throw error;
 
     if (!data) {
@@ -284,21 +518,13 @@ async function fetchSosmed() {
     }
 
     const links = [];
-
-    if (data.tiktok) {
-      links.push({ url: data.tiktok, label: "TikTok", icon: "fa-brands fa-tiktok" });
-    }
-    if (data.instagram) {
-      links.push({ url: data.instagram, label: "Instagram", icon: "fa-brands fa-instagram" });
-    }
+    if (data.tiktok) links.push({ url: data.tiktok, label: "TikTok", icon: "fa-brands fa-tiktok" });
+    if (data.instagram) links.push({ url: data.instagram, label: "Instagram", icon: "fa-brands fa-instagram" });
     if (data.email) {
       const mailHref = data.email.startsWith("mailto:") ? data.email : `mailto:${data.email}`;
       links.push({ url: mailHref, label: "Email", icon: "fa-solid fa-envelope" });
     }
-
-    if (data.file_url) {
-      links.push({ url: data.file_url, label: "Unduh CV", icon: "fa-solid fa-file-arrow-down" });
-    }
+    if (data.file_url) links.push({ url: data.file_url, label: "Unduh CV", icon: "fa-solid fa-file-arrow-down" });
 
     if (links.length === 0) {
       renderInto(container, createEmptyState("Tautan kontak belum tersedia."));
@@ -316,117 +542,147 @@ async function fetchSosmed() {
     });
 
     renderInto(container, buttons);
+
+    const socialIconWrap = document.getElementById("sidebar-social");
+    if (socialIconWrap) {
+      socialIconWrap.innerHTML = "";
+      links.slice(0, 4).forEach((link) => {
+        const a = document.createElement("a");
+        a.href = link.url;
+        a.target = link.label === "Email" ? "_self" : "_blank";
+        a.rel = "noopener noreferrer";
+        a.title = link.label;
+        a.innerHTML = `<i class="${link.icon}"></i>`;
+        socialIconWrap.appendChild(a);
+      });
+    }
   } catch (err) {
     console.error("Gagal memuat data sosmed:", err);
-    renderInto(
-      container,
-      createErrorState("Terjadi kendala saat memuat tautan kontak. Silakan muat ulang halaman.")
-    );
+    renderInto(container, createErrorState("Terjadi kendala saat memuat tautan kontak."));
   }
 }
 
 /* -----------------------------------------------------------
-   7. ORKESTRASI FETCH
+   11. ORKESTRASI FETCH
 ----------------------------------------------------------- */
 async function fetchPortfolioData() {
-  await Promise.all([fetchProfile(), fetchKegiatan(), fetchPrestasi(), fetchSosmed()]);
+  await Promise.all([
+    fetchProfile(),
+    fetchPendidikan(),
+    fetchOrganisasi(),
+    fetchKegiatan(),
+    fetchPrestasi(),
+    fetchSosmed(),
+  ]);
 }
 
 /* -----------------------------------------------------------
-   8. UI: TYPING TAGLINE EFFECT
+   12. TAGLINE — diketik sekali (kesan lebih formal/profesional)
 ----------------------------------------------------------- */
-function initTaglineTyping() {
+let taglineTyped = false;
+
+function initTaglineOnce(phrase) {
+  if (taglineTyped) return;
+  taglineTyped = true;
+
   const el = document.getElementById("tagline-text");
-  if (!el) return;
+  if (!el || !phrase) return;
 
-  const phrases = [
-    "Pelajar yang gemar mengeksplorasi teknologi.",
-    "Bersemangat membangun karya digital.",
-    "Terus belajar, terus bertumbuh.",
-  ];
-
-  let phraseIndex = 0;
   let charIndex = 0;
-  let deleting = false;
 
   function tick() {
-    const current = phrases[phraseIndex];
-
-    if (!deleting) {
-      charIndex++;
-      el.textContent = current.slice(0, charIndex);
-      if (charIndex === current.length) {
-        deleting = true;
-        setTimeout(tick, 1800);
-        return;
-      }
-    } else {
-      charIndex--;
-      el.textContent = current.slice(0, charIndex);
-      if (charIndex === 0) {
-        deleting = false;
-        phraseIndex = (phraseIndex + 1) % phrases.length;
-      }
+    charIndex++;
+    el.textContent = phrase.slice(0, charIndex);
+    if (charIndex < phrase.length) {
+      setTimeout(tick, 32);
     }
-
-    setTimeout(tick, deleting ? 35 : 60);
   }
 
   tick();
 }
 
 /* -----------------------------------------------------------
-   9. UI: MOBILE NAV TOGGLE
+   13. LIGHTBOX GALERI
 ----------------------------------------------------------- */
-function initMobileNav() {
-  const toggle = document.getElementById("nav-toggle");
-  const navList = document.querySelector(".nav-list");
-  if (!toggle || !navList) return;
+const lightboxState = { items: [], index: 0 };
 
-  toggle.addEventListener("click", () => {
-    const isOpen = navList.classList.toggle("open");
-    toggle.setAttribute("aria-expanded", String(isOpen));
+function renderLightboxMedia() {
+  const slot = document.getElementById("lightbox-media-slot");
+  if (!slot) return;
+  slot.innerHTML = "";
+
+  const item = lightboxState.items[lightboxState.index];
+  if (!item) return;
+
+  if (item.type === "video") {
+    const video = document.createElement("video");
+    video.src = item.url;
+    video.controls = true;
+    video.autoplay = true;
+    slot.appendChild(video);
+  } else {
+    const img = document.createElement("img");
+    img.src = item.url;
+    img.alt = "Media";
+    slot.appendChild(img);
+  }
+
+  const prevBtn = document.getElementById("lightbox-prev");
+  const nextBtn = document.getElementById("lightbox-next");
+  const multi = lightboxState.items.length > 1;
+  if (prevBtn) prevBtn.style.display = multi ? "flex" : "none";
+  if (nextBtn) nextBtn.style.display = multi ? "flex" : "none";
+}
+
+function openLightbox(items, startIndex) {
+  if (!items || items.length === 0) return;
+  lightboxState.items = items;
+  lightboxState.index = startIndex || 0;
+  renderLightboxMedia();
+  document.getElementById("lightbox-overlay").classList.add("open");
+}
+
+function closeLightbox() {
+  document.getElementById("lightbox-overlay").classList.remove("open");
+  const slot = document.getElementById("lightbox-media-slot");
+  if (slot) slot.innerHTML = "";
+}
+
+function lightboxNext() {
+  lightboxState.index = (lightboxState.index + 1) % lightboxState.items.length;
+  renderLightboxMedia();
+}
+
+function lightboxPrev() {
+  lightboxState.index = (lightboxState.index - 1 + lightboxState.items.length) % lightboxState.items.length;
+  renderLightboxMedia();
+}
+
+function initLightbox() {
+  document.getElementById("lightbox-close").addEventListener("click", closeLightbox);
+  document.getElementById("lightbox-next").addEventListener("click", lightboxNext);
+  document.getElementById("lightbox-prev").addEventListener("click", lightboxPrev);
+  document.getElementById("lightbox-overlay").addEventListener("click", (e) => {
+    if (e.target.id === "lightbox-overlay") closeLightbox();
   });
-
-  navList.querySelectorAll(".nav-link").forEach((link) => {
-    link.addEventListener("click", () => {
-      navList.classList.remove("open");
-      toggle.setAttribute("aria-expanded", "false");
-    });
+  document.addEventListener("keydown", (e) => {
+    const overlay = document.getElementById("lightbox-overlay");
+    if (!overlay.classList.contains("open")) return;
+    if (e.key === "Escape") closeLightbox();
+    if (e.key === "ArrowRight") lightboxNext();
+    if (e.key === "ArrowLeft") lightboxPrev();
   });
 }
 
 /* -----------------------------------------------------------
-   10. UI: SCROLL FADE-IN OBSERVER
------------------------------------------------------------ */
-function initScrollFadeIn() {
-  const targets = document.querySelectorAll(".section");
-  if (!("IntersectionObserver" in window) || targets.length === 0) return;
-
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("fade-in-visible");
-          observer.unobserve(entry.target);
-        }
-      });
-    },
-    { threshold: 0.15 }
-  );
-
-  targets.forEach((target) => observer.observe(target));
-}
-
-/* -----------------------------------------------------------
-   11. INIT
+   14. INIT
 ----------------------------------------------------------- */
 document.addEventListener("DOMContentLoaded", () => {
   const yearEl = document.getElementById("footer-year");
   if (yearEl) yearEl.textContent = String(new Date().getFullYear());
 
-  initTaglineTyping();
-  initMobileNav();
-  initScrollFadeIn();
+  initRouting();
+  initMobileSidebar();
+  initLightbox();
   fetchPortfolioData();
 });
