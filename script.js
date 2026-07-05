@@ -8,8 +8,8 @@
    Ganti dua variabel di bawah ini dengan kredensial project
    Supabase Anda sendiri (Settings > API di dashboard Supabase).
 ----------------------------------------------------------- */
-const SUPABASE_URL = "https://YOUR-PROJECT-REF.supabase.co";
-const SUPABASE_ANON_KEY = "YOUR-SUPABASE-ANON-PUBLIC-KEY";
+const SUPABASE_URL = "https://kpvbbostervhfyhcnojo.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwdmJib3N0ZXJ2aGZ5aGNub2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyMzU4NTYsImV4cCI6MjA5ODgxMTg1Nn0.RgpZVgIv1L-UR3MXjoIwRKr6Qx_GkHuvbxiXWfVnSuw";
 
 let supabaseClient = null;
 
