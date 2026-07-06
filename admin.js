@@ -47,12 +47,18 @@ const state = {
 
   pendidikanItems: [],
   pendidikanEditingId: null,
+  pendidikanGalleryExisting: [],
+  pendidikanGalleryNewFiles: [],
+  pendidikanGalleryRemovedIds: [],
 
   organisasiItems: [],
   organisasiEditingId: null,
   organisasiLogoFile: null,
   organisasiRemoveLogo: false,
   organisasiExistingLogoUrl: "",
+  organisasiGalleryExisting: [],
+  organisasiGalleryNewFiles: [],
+  organisasiGalleryRemovedIds: [],
 
   kegiatanItems: [],
   kegiatanEditingId: null,
@@ -414,13 +420,40 @@ const pendidikanJenjang = document.getElementById("pendidikan-jenjang");
 const pendidikanTahunMulai = document.getElementById("pendidikan-tahun-mulai");
 const pendidikanTahunSelesai = document.getElementById("pendidikan-tahun-selesai");
 const pendidikanDeskripsi = document.getElementById("pendidikan-deskripsi");
+const pendidikanDeskripsiPanjang = document.getElementById("pendidikan-deskripsi-panjang");
 const pendidikanSubmitBtn = document.getElementById("pendidikan-submit-btn");
 const pendidikanCancelBtn = document.getElementById("pendidikan-cancel-btn");
+const pendidikanGalleryGrid = document.getElementById("pendidikan-gallery-grid");
+const pendidikanGalleryInput = document.getElementById("pendidikan-gallery-input");
+const pendidikanGalleryAddBtn = document.getElementById("pendidikan-gallery-add-btn");
+
+function renderPendidikanGallery() {
+  renderGalleryGrid({
+    gridEl: pendidikanGalleryGrid,
+    addBtnId: "pendidikan-gallery-add-btn",
+    existing: state.pendidikanGalleryExisting,
+    removedIds: state.pendidikanGalleryRemovedIds,
+    newFiles: state.pendidikanGalleryNewFiles,
+    onRemoveExisting: (id) => {
+      state.pendidikanGalleryRemovedIds.push(id);
+      renderPendidikanGallery();
+    },
+    onRemoveNew: (idx) => {
+      state.pendidikanGalleryNewFiles.splice(idx, 1);
+      renderPendidikanGallery();
+    },
+  });
+}
 
 async function loadPendidikan() {
   if (!supabaseClient || !pendidikanList) return;
   try {
-    const { data, error } = await supabaseClient.from("pendidikan").select("*").order("urutan", { ascending: true });
+    const { data, error } = await supabaseClient
+      .from("pendidikan")
+      .select("*, pendidikan_media(id, media_url, media_type, urutan)")
+      .order("urutan", { ascending: true })
+      .order("urutan", { foreignTable: "pendidikan_media", ascending: true });
+
     if (error) throw error;
 
     state.pendidikanItems = data || [];
@@ -433,11 +466,15 @@ async function loadPendidikan() {
     }
 
     state.pendidikanItems.forEach((item, index) => {
+      const gallery = Array.isArray(item.pendidikan_media) ? item.pendidikan_media : [];
+      const firstImage = gallery.find((g) => g.media_type !== "video");
+
       pendidikanList.appendChild(
         makeItemRow({
           title: item.institusi || "Tanpa nama",
           subtitle: [item.jenjang, item.tahun_mulai].filter(Boolean).join(" · "),
-          hasMedia: false,
+          hasMedia: gallery.length > 0,
+          thumbUrl: firstImage ? firstImage.media_url : null,
           onEdit: () => startEditPendidikan(item),
           onDelete: () => deletePendidikan(item.id),
           onMoveUp: () => swapUrutan("pendidikan", item, state.pendidikanItems[index - 1], loadPendidikan),
@@ -456,12 +493,19 @@ async function loadPendidikan() {
 
 function startEditPendidikan(item) {
   state.pendidikanEditingId = item.id;
+  state.pendidikanGalleryExisting = Array.isArray(item.pendidikan_media) ? item.pendidikan_media : [];
+  state.pendidikanGalleryNewFiles = [];
+  state.pendidikanGalleryRemovedIds = [];
+
   pendidikanEditId.value = item.id;
   pendidikanInstitusi.value = item.institusi || "";
   pendidikanJenjang.value = item.jenjang || "";
   pendidikanTahunMulai.value = item.tahun_mulai || "";
   pendidikanTahunSelesai.value = item.tahun_selesai || "";
   pendidikanDeskripsi.value = item.deskripsi || "";
+  pendidikanDeskripsiPanjang.value = item.deskripsi_panjang || "";
+  pendidikanGalleryInput.value = "";
+  renderPendidikanGallery();
 
   pendidikanSubmitBtn.textContent = "Update Pendidikan";
   pendidikanCancelBtn.classList.remove("hidden");
@@ -470,8 +514,15 @@ function startEditPendidikan(item) {
 
 function cancelEditPendidikan() {
   state.pendidikanEditingId = null;
+  state.pendidikanGalleryExisting = [];
+  state.pendidikanGalleryNewFiles = [];
+  state.pendidikanGalleryRemovedIds = [];
+
   pendidikanForm.reset();
   pendidikanEditId.value = "";
+  pendidikanGalleryInput.value = "";
+  renderPendidikanGallery();
+
   pendidikanSubmitBtn.textContent = "Tambah Pendidikan";
   pendidikanCancelBtn.classList.add("hidden");
 }
@@ -496,19 +547,37 @@ async function submitPendidikan(e) {
       tahun_mulai: pendidikanTahunMulai.value.trim(),
       tahun_selesai: pendidikanTahunSelesai.value.trim(),
       deskripsi: pendidikanDeskripsi.value.trim(),
+      deskripsi_panjang: pendidikanDeskripsiPanjang.value.trim(),
     };
 
-    let opError = null;
+    let pendidikanId = state.pendidikanEditingId;
+
     if (isEditing) {
-      const { error } = await supabaseClient.from("pendidikan").update(payload).eq("id", state.pendidikanEditingId);
-      opError = error;
+      const { error } = await supabaseClient.from("pendidikan").update(payload).eq("id", pendidikanId);
+      if (error) throw error;
     } else {
       payload.urutan = state.pendidikanItems.length;
-      const { error } = await supabaseClient.from("pendidikan").insert([payload]);
-      opError = error;
+      const { data: inserted, error } = await supabaseClient.from("pendidikan").insert([payload]).select().maybeSingle();
+      if (error) throw error;
+      pendidikanId = inserted.id;
     }
 
-    if (opError) throw opError;
+    for (const removedId of state.pendidikanGalleryRemovedIds) {
+      await supabaseClient.from("pendidikan_media").delete().eq("id", removedId);
+    }
+
+    const remainingCount = state.pendidikanGalleryExisting.filter(
+      (m) => !state.pendidikanGalleryRemovedIds.includes(m.id)
+    ).length;
+
+    for (let i = 0; i < state.pendidikanGalleryNewFiles.length; i++) {
+      const file = state.pendidikanGalleryNewFiles[i];
+      const mediaUrl = await uploadFileToStorage(file, "pendidikan");
+      const mediaType = file.type.startsWith("video/") ? "video" : "image";
+      await supabaseClient.from("pendidikan_media").insert([
+        { pendidikan_id: pendidikanId, media_url: mediaUrl, media_type: mediaType, urutan: remainingCount + i },
+      ]);
+    }
 
     showToast(isEditing ? "Pendidikan berhasil diperbarui." : "Pendidikan berhasil ditambahkan.");
     cancelEditPendidikan();
@@ -523,7 +592,7 @@ async function submitPendidikan(e) {
 
 async function deletePendidikan(id) {
   if (!supabaseClient) return;
-  if (!confirm("Yakin ingin menghapus riwayat pendidikan ini?")) return;
+  if (!confirm("Yakin ingin menghapus riwayat pendidikan ini? Galeri media terkait juga akan terhapus.")) return;
   try {
     const { error } = await supabaseClient.from("pendidikan").delete().eq("id", id);
     if (error) throw error;
@@ -546,12 +615,16 @@ const organisasiNama = document.getElementById("organisasi-nama");
 const organisasiJabatan = document.getElementById("organisasi-jabatan");
 const organisasiPeriode = document.getElementById("organisasi-periode");
 const organisasiDeskripsi = document.getElementById("organisasi-deskripsi");
+const organisasiDeskripsiPanjang = document.getElementById("organisasi-deskripsi-panjang");
 const organisasiSubmitBtn = document.getElementById("organisasi-submit-btn");
 const organisasiCancelBtn = document.getElementById("organisasi-cancel-btn");
 const organisasiLogoInput = document.getElementById("organisasi-logo-input");
 const organisasiLogoPreviewImg = document.getElementById("organisasi-logo-preview-img");
 const organisasiLogoPlaceholder = document.getElementById("organisasi-logo-placeholder");
 const organisasiLogoRemoveBtn = document.getElementById("organisasi-logo-remove-btn");
+const organisasiGalleryGrid = document.getElementById("organisasi-gallery-grid");
+const organisasiGalleryInput = document.getElementById("organisasi-gallery-input");
+const organisasiGalleryAddBtn = document.getElementById("organisasi-gallery-add-btn");
 
 function updateOrganisasiLogoPreview(url) {
   if (url) {
@@ -587,10 +660,33 @@ function handleOrganisasiLogoRemoveClick() {
   updateOrganisasiLogoPreview("");
 }
 
+function renderOrganisasiGallery() {
+  renderGalleryGrid({
+    gridEl: organisasiGalleryGrid,
+    addBtnId: "organisasi-gallery-add-btn",
+    existing: state.organisasiGalleryExisting,
+    removedIds: state.organisasiGalleryRemovedIds,
+    newFiles: state.organisasiGalleryNewFiles,
+    onRemoveExisting: (id) => {
+      state.organisasiGalleryRemovedIds.push(id);
+      renderOrganisasiGallery();
+    },
+    onRemoveNew: (idx) => {
+      state.organisasiGalleryNewFiles.splice(idx, 1);
+      renderOrganisasiGallery();
+    },
+  });
+}
+
 async function loadOrganisasi() {
   if (!supabaseClient || !organisasiList) return;
   try {
-    const { data, error } = await supabaseClient.from("organisasi").select("*").order("urutan", { ascending: true });
+    const { data, error } = await supabaseClient
+      .from("organisasi")
+      .select("*, organisasi_media(id, media_url, media_type, urutan)")
+      .order("urutan", { ascending: true })
+      .order("urutan", { foreignTable: "organisasi_media", ascending: true });
+
     if (error) throw error;
 
     state.organisasiItems = data || [];
@@ -603,11 +699,12 @@ async function loadOrganisasi() {
     }
 
     state.organisasiItems.forEach((item, index) => {
+      const gallery = Array.isArray(item.organisasi_media) ? item.organisasi_media : [];
       organisasiList.appendChild(
         makeItemRow({
           title: item.nama_organisasi || "Tanpa nama",
           subtitle: [item.jabatan, item.periode].filter(Boolean).join(" · "),
-          hasMedia: Boolean(item.logo_url),
+          hasMedia: Boolean(item.logo_url) || gallery.length > 0,
           thumbUrl: item.logo_url || null,
           onEdit: () => startEditOrganisasi(item),
           onDelete: () => deleteOrganisasi(item.id),
@@ -630,14 +727,20 @@ function startEditOrganisasi(item) {
   state.organisasiLogoFile = null;
   state.organisasiRemoveLogo = false;
   state.organisasiExistingLogoUrl = item.logo_url || "";
+  state.organisasiGalleryExisting = Array.isArray(item.organisasi_media) ? item.organisasi_media : [];
+  state.organisasiGalleryNewFiles = [];
+  state.organisasiGalleryRemovedIds = [];
 
   organisasiEditId.value = item.id;
   organisasiNama.value = item.nama_organisasi || "";
   organisasiJabatan.value = item.jabatan || "";
   organisasiPeriode.value = item.periode || "";
   organisasiDeskripsi.value = item.deskripsi || "";
+  organisasiDeskripsiPanjang.value = item.deskripsi_panjang || "";
   organisasiLogoInput.value = "";
+  organisasiGalleryInput.value = "";
   updateOrganisasiLogoPreview(state.organisasiExistingLogoUrl);
+  renderOrganisasiGallery();
 
   organisasiSubmitBtn.textContent = "Update Organisasi";
   organisasiCancelBtn.classList.remove("hidden");
@@ -649,10 +752,15 @@ function cancelEditOrganisasi() {
   state.organisasiLogoFile = null;
   state.organisasiRemoveLogo = false;
   state.organisasiExistingLogoUrl = "";
+  state.organisasiGalleryExisting = [];
+  state.organisasiGalleryNewFiles = [];
+  state.organisasiGalleryRemovedIds = [];
 
   organisasiForm.reset();
   organisasiEditId.value = "";
+  organisasiGalleryInput.value = "";
   updateOrganisasiLogoPreview("");
+  renderOrganisasiGallery();
 
   organisasiSubmitBtn.textContent = "Tambah Organisasi";
   organisasiCancelBtn.classList.add("hidden");
@@ -684,20 +792,38 @@ async function submitOrganisasi(e) {
       jabatan: organisasiJabatan.value.trim(),
       periode: organisasiPeriode.value.trim(),
       deskripsi: organisasiDeskripsi.value.trim(),
+      deskripsi_panjang: organisasiDeskripsiPanjang.value.trim(),
       logo_url: logoUrl || null,
     };
 
-    let opError = null;
+    let organisasiId = state.organisasiEditingId;
+
     if (isEditing) {
-      const { error } = await supabaseClient.from("organisasi").update(payload).eq("id", state.organisasiEditingId);
-      opError = error;
+      const { error } = await supabaseClient.from("organisasi").update(payload).eq("id", organisasiId);
+      if (error) throw error;
     } else {
       payload.urutan = state.organisasiItems.length;
-      const { error } = await supabaseClient.from("organisasi").insert([payload]);
-      opError = error;
+      const { data: inserted, error } = await supabaseClient.from("organisasi").insert([payload]).select().maybeSingle();
+      if (error) throw error;
+      organisasiId = inserted.id;
     }
 
-    if (opError) throw opError;
+    for (const removedId of state.organisasiGalleryRemovedIds) {
+      await supabaseClient.from("organisasi_media").delete().eq("id", removedId);
+    }
+
+    const remainingCount = state.organisasiGalleryExisting.filter(
+      (m) => !state.organisasiGalleryRemovedIds.includes(m.id)
+    ).length;
+
+    for (let i = 0; i < state.organisasiGalleryNewFiles.length; i++) {
+      const file = state.organisasiGalleryNewFiles[i];
+      const mediaUrl = await uploadFileToStorage(file, "organisasi");
+      const mediaType = file.type.startsWith("video/") ? "video" : "image";
+      await supabaseClient.from("organisasi_media").insert([
+        { organisasi_id: organisasiId, media_url: mediaUrl, media_type: mediaType, urutan: remainingCount + i },
+      ]);
+    }
 
     showToast(isEditing ? "Organisasi berhasil diperbarui." : "Organisasi berhasil ditambahkan.");
     cancelEditOrganisasi();
@@ -712,7 +838,7 @@ async function submitOrganisasi(e) {
 
 async function deleteOrganisasi(id) {
   if (!supabaseClient) return;
-  if (!confirm("Yakin ingin menghapus organisasi ini?")) return;
+  if (!confirm("Yakin ingin menghapus organisasi ini? Galeri media terkait juga akan terhapus.")) return;
   try {
     const { error } = await supabaseClient.from("organisasi").delete().eq("id", id);
     if (error) throw error;
@@ -809,6 +935,7 @@ const kegiatanEditId = document.getElementById("kegiatan-edit-id");
 const kegiatanJudul = document.getElementById("kegiatan-judul");
 const kegiatanKategori = document.getElementById("kegiatan-kategori");
 const kegiatanDeskripsi = document.getElementById("kegiatan-deskripsi");
+const kegiatanDeskripsiPanjang = document.getElementById("kegiatan-deskripsi-panjang");
 const kegiatanSubmitBtn = document.getElementById("kegiatan-submit-btn");
 const kegiatanCancelBtn = document.getElementById("kegiatan-cancel-btn");
 const kegiatanGalleryGrid = document.getElementById("kegiatan-gallery-grid");
@@ -889,6 +1016,7 @@ function startEditKegiatan(item) {
   kegiatanJudul.value = item.judul || "";
   kegiatanKategori.value = item.kategori || "";
   kegiatanDeskripsi.value = item.deskripsi || "";
+  kegiatanDeskripsiPanjang.value = item.deskripsi_panjang || "";
   kegiatanGalleryInput.value = "";
   renderKegiatanGallery();
 
@@ -930,6 +1058,7 @@ async function submitKegiatan(e) {
       judul,
       kategori: kegiatanKategori.value.trim(),
       deskripsi: kegiatanDeskripsi.value.trim(),
+      deskripsi_panjang: kegiatanDeskripsiPanjang.value.trim(),
     };
 
     let kegiatanId = state.kegiatanEditingId;
@@ -1002,6 +1131,7 @@ const prestasiEditId = document.getElementById("prestasi-edit-id");
 const prestasiNama = document.getElementById("prestasi-nama");
 const prestasiTahun = document.getElementById("prestasi-tahun");
 const prestasiDeskripsi = document.getElementById("prestasi-deskripsi");
+const prestasiDeskripsiPanjang = document.getElementById("prestasi-deskripsi-panjang");
 const prestasiSubmitBtn = document.getElementById("prestasi-submit-btn");
 const prestasiCancelBtn = document.getElementById("prestasi-cancel-btn");
 const prestasiGalleryGrid = document.getElementById("prestasi-gallery-grid");
@@ -1082,6 +1212,7 @@ function startEditPrestasi(item) {
   prestasiNama.value = item.nama || "";
   prestasiTahun.value = item.tahun || "";
   prestasiDeskripsi.value = item.deskripsi || "";
+  prestasiDeskripsiPanjang.value = item.deskripsi_panjang || "";
   prestasiGalleryInput.value = "";
   renderPrestasiGallery();
 
@@ -1120,7 +1251,12 @@ async function submitPrestasi(e) {
   setButtonLoading(prestasiSubmitBtn, true, "Menyimpan...", isEditing ? "Update Prestasi" : "Tambah Prestasi");
 
   try {
-    const payload = { nama, tahun, deskripsi: prestasiDeskripsi.value.trim() };
+    const payload = {
+      nama,
+      tahun,
+      deskripsi: prestasiDeskripsi.value.trim(),
+      deskripsi_panjang: prestasiDeskripsiPanjang.value.trim(),
+    };
     let prestasiId = state.prestasiEditingId;
 
     if (isEditing) {
@@ -1326,11 +1462,21 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   pendidikanForm.addEventListener("submit", submitPendidikan);
   pendidikanCancelBtn.addEventListener("click", cancelEditPendidikan);
+  pendidikanGalleryAddBtn.addEventListener("click", () => pendidikanGalleryInput.click());
+  pendidikanGalleryInput.addEventListener("change", () => {
+    handleGalleryFilesSelected(pendidikanGalleryInput.files, state.pendidikanGalleryNewFiles, renderPendidikanGallery);
+    pendidikanGalleryInput.value = "";
+  });
 
   organisasiForm.addEventListener("submit", submitOrganisasi);
   organisasiCancelBtn.addEventListener("click", cancelEditOrganisasi);
   organisasiLogoInput.addEventListener("change", handleOrganisasiLogoInputChange);
   organisasiLogoRemoveBtn.addEventListener("click", handleOrganisasiLogoRemoveClick);
+  organisasiGalleryAddBtn.addEventListener("click", () => organisasiGalleryInput.click());
+  organisasiGalleryInput.addEventListener("change", () => {
+    handleGalleryFilesSelected(organisasiGalleryInput.files, state.organisasiGalleryNewFiles, renderOrganisasiGallery);
+    organisasiGalleryInput.value = "";
+  });
 
   kegiatanForm.addEventListener("submit", submitKegiatan);
   kegiatanCancelBtn.addEventListener("click", cancelEditKegiatan);

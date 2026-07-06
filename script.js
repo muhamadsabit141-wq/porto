@@ -187,7 +187,7 @@ async function fetchProfile() {
    6. FETCH: PENDIDIKAN
 ----------------------------------------------------------- */
 async function fetchPendidikan() {
-  const container = document.getElementById("pendidikan-timeline");
+  const container = document.getElementById("pendidikan-grid");
   if (!container) return;
 
   if (!supabaseClient) {
@@ -198,8 +198,9 @@ async function fetchPendidikan() {
   try {
     const { data, error } = await supabaseClient
       .from("pendidikan")
-      .select("*")
-      .order("urutan", { ascending: true });
+      .select("*, pendidikan_media(id, media_url, media_type, urutan)")
+      .order("urutan", { ascending: true })
+      .order("urutan", { foreignTable: "pendidikan_media", ascending: true });
 
     if (error) throw error;
 
@@ -208,32 +209,62 @@ async function fetchPendidikan() {
       return;
     }
 
-    const items = data.map((item) => {
-      const wrap = document.createElement("div");
-      wrap.className = "timeline-item";
+    const cards = data.map((item) => {
+      const gallery = Array.isArray(item.pendidikan_media) ? item.pendidikan_media : [];
+      const card = document.createElement("article");
+      card.className = "org-card";
 
-      const badge = document.createElement("span");
-      badge.className = "timeline-badge";
+      const logo = document.createElement("div");
+      logo.className = "org-logo";
+      const firstImage = gallery.find((g) => g.media_type !== "video");
+      if (firstImage) {
+        const img = document.createElement("img");
+        img.src = firstImage.media_url;
+        img.alt = escapeText(item.institusi || "Pendidikan");
+        logo.appendChild(img);
+      } else {
+        logo.innerHTML = '<i class="fa-solid fa-graduation-cap"></i>';
+      }
+
+      const info = document.createElement("div");
+      const name = document.createElement("h3");
+      name.className = "org-name";
+      name.textContent = escapeText(item.institusi || "Institusi belum diisi");
+
+      const role = document.createElement("p");
+      role.className = "org-role";
+      role.textContent = escapeText(item.jenjang || "");
+
       const periode = [item.tahun_mulai, item.tahun_selesai].filter(Boolean).join(" – ");
-      badge.textContent = periode || "-";
-
-      const title = document.createElement("h3");
-      title.className = "timeline-title";
-      title.textContent = escapeText(item.institusi || "Institusi belum diisi");
-
-      const meta = document.createElement("p");
-      meta.className = "timeline-meta";
-      meta.textContent = escapeText(item.jenjang || "");
+      const period = document.createElement("p");
+      period.className = "org-period";
+      period.textContent = periode;
 
       const desc = document.createElement("p");
-      desc.className = "timeline-desc";
-      desc.textContent = escapeText(item.deskripsi || "");
+      desc.className = "org-desc";
+      desc.textContent = escapeText(item.deskripsi || "Belum ada deskripsi.");
 
-      wrap.append(badge, title, meta, desc);
-      return wrap;
+      const hint = document.createElement("span");
+      hint.className = "org-card-hint";
+      hint.innerHTML = '<i class="fa-solid fa-expand"></i> Lihat detail';
+
+      info.append(name, role, period, desc, hint);
+      card.append(logo, info);
+
+      card.addEventListener("click", () => {
+        openDetailModal({
+          eyebrow: "Pendidikan",
+          title: item.institusi || "Institusi belum diisi",
+          meta: periode || item.jenjang || "",
+          description: item.deskripsi_panjang || item.deskripsi || "Belum ada deskripsi lebih lanjut.",
+          gallery: gallery.map((g) => ({ url: g.media_url, type: g.media_type })),
+        });
+      });
+
+      return card;
     });
 
-    renderInto(container, items);
+    renderInto(container, cards);
   } catch (err) {
     console.error("Gagal memuat pendidikan:", err);
     renderInto(container, createErrorState("Terjadi kendala saat memuat data pendidikan."));
@@ -256,8 +287,9 @@ async function fetchOrganisasi() {
   try {
     const { data, error } = await supabaseClient
       .from("organisasi")
-      .select("*")
-      .order("urutan", { ascending: true });
+      .select("*, organisasi_media(id, media_url, media_type, urutan)")
+      .order("urutan", { ascending: true })
+      .order("urutan", { foreignTable: "organisasi_media", ascending: true });
 
     if (error) throw error;
 
@@ -269,6 +301,7 @@ async function fetchOrganisasi() {
     }
 
     const cards = data.map((item) => {
+      const gallery = Array.isArray(item.organisasi_media) ? item.organisasi_media : [];
       const card = document.createElement("article");
       card.className = "org-card";
 
@@ -298,10 +331,25 @@ async function fetchOrganisasi() {
 
       const desc = document.createElement("p");
       desc.className = "org-desc";
-      desc.textContent = escapeText(item.deskripsi || "");
+      desc.textContent = escapeText(item.deskripsi || "Belum ada deskripsi.");
 
-      info.append(name, role, period, desc);
+      const hint = document.createElement("span");
+      hint.className = "org-card-hint";
+      hint.innerHTML = '<i class="fa-solid fa-expand"></i> Lihat detail';
+
+      info.append(name, role, period, desc, hint);
       card.append(logo, info);
+
+      card.addEventListener("click", () => {
+        openDetailModal({
+          eyebrow: "Organisasi",
+          title: item.nama_organisasi || "Tanpa nama",
+          meta: [item.jabatan, item.periode].filter(Boolean).join(" · "),
+          description: item.deskripsi_panjang || item.deskripsi || "Belum ada deskripsi lebih lanjut.",
+          gallery: gallery.map((g) => ({ url: g.media_url, type: g.media_type })),
+        });
+      });
+
       return card;
     });
 
@@ -371,10 +419,6 @@ async function fetchKegiatan() {
           mediaWrap.appendChild(countBadge);
         }
 
-        mediaWrap.addEventListener("click", () => {
-          openLightbox(gallery.map((g) => ({ url: g.media_url, type: g.media_type })), 0);
-        });
-
         card.appendChild(mediaWrap);
       } else {
         const noImg = document.createElement("div");
@@ -400,6 +444,16 @@ async function fetchKegiatan() {
 
       body.append(meta, title, desc);
       card.appendChild(body);
+
+      card.addEventListener("click", () => {
+        openDetailModal({
+          eyebrow: "Kegiatan",
+          title: item.judul || "Tanpa judul",
+          meta: item.kategori || "",
+          description: item.deskripsi_panjang || item.deskripsi || "Belum ada deskripsi lebih lanjut.",
+          gallery: gallery.map((g) => ({ url: g.media_url, type: g.media_type })),
+        });
+      });
       return card;
     });
 
@@ -456,7 +510,11 @@ async function fetchPrestasi() {
       desc.className = "timeline-desc";
       desc.textContent = escapeText(item.deskripsi || "Deskripsi belum tersedia.");
 
-      wrap.append(badge, title, desc);
+      const hint = document.createElement("span");
+      hint.className = "timeline-item-hint";
+      hint.innerHTML = '<i class="fa-solid fa-expand"></i> Lihat detail';
+
+      wrap.append(badge, title, desc, hint);
 
       if (gallery.length > 0) {
         const galleryWrap = document.createElement("div");
@@ -482,7 +540,8 @@ async function fetchPrestasi() {
             thumb.appendChild(img);
           }
 
-          thumb.addEventListener("click", () => {
+          thumb.addEventListener("click", (e) => {
+            e.stopPropagation();
             openLightbox(gallery.map((m) => ({ url: m.media_url, type: m.media_type })), idx);
           });
 
@@ -491,6 +550,16 @@ async function fetchPrestasi() {
 
         wrap.appendChild(galleryWrap);
       }
+
+      wrap.addEventListener("click", () => {
+        openDetailModal({
+          eyebrow: "Prestasi",
+          title: item.nama || "Tanpa nama",
+          meta: item.tahun || "",
+          description: item.deskripsi_panjang || item.deskripsi || "Belum ada deskripsi lebih lanjut.",
+          gallery: gallery.map((g) => ({ url: g.media_url, type: g.media_type })),
+        });
+      });
 
       return wrap;
     });
@@ -681,6 +750,62 @@ function initLightbox() {
 }
 
 /* -----------------------------------------------------------
+   13B. DETAIL MODAL — deskripsi panjang + galeri (dipakai semua section)
+----------------------------------------------------------- */
+function openDetailModal({ eyebrow, title, meta, description, gallery }) {
+  document.getElementById("detail-modal-eyebrow").textContent = eyebrow || "";
+  document.getElementById("detail-modal-title").textContent = title || "";
+  document.getElementById("detail-modal-meta").textContent = meta || "";
+  document.getElementById("detail-modal-desc").textContent = description || "";
+
+  const galleryEl = document.getElementById("detail-modal-gallery");
+  galleryEl.innerHTML = "";
+
+  const items = Array.isArray(gallery) ? gallery : [];
+  items.forEach((g, idx) => {
+    const thumb = document.createElement("div");
+    thumb.className = "detail-modal-gallery-thumb";
+
+    if (g.type === "video") {
+      const video = document.createElement("video");
+      video.src = g.url;
+      video.muted = true;
+      const badgeIcon = document.createElement("span");
+      badgeIcon.className = "play-badge";
+      badgeIcon.innerHTML = '<i class="fa-solid fa-play"></i>';
+      thumb.append(video, badgeIcon);
+    } else {
+      const img = document.createElement("img");
+      img.src = g.url;
+      img.alt = escapeText(title || "Media");
+      img.loading = "lazy";
+      thumb.appendChild(img);
+    }
+
+    thumb.addEventListener("click", () => openLightbox(items, idx));
+    galleryEl.appendChild(thumb);
+  });
+
+  document.getElementById("detail-modal-overlay").classList.add("open");
+}
+
+function closeDetailModal() {
+  document.getElementById("detail-modal-overlay").classList.remove("open");
+}
+
+function initDetailModal() {
+  document.getElementById("detail-modal-close").addEventListener("click", closeDetailModal);
+  document.getElementById("detail-modal-overlay").addEventListener("click", (e) => {
+    if (e.target.id === "detail-modal-overlay") closeDetailModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    const overlay = document.getElementById("detail-modal-overlay");
+    if (!overlay.classList.contains("open")) return;
+    if (e.key === "Escape") closeDetailModal();
+  });
+}
+
+/* -----------------------------------------------------------
    14. INIT
 ----------------------------------------------------------- */
 document.addEventListener("DOMContentLoaded", () => {
@@ -690,5 +815,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initRouting();
   initMobileSidebar();
   initLightbox();
+  initDetailModal();
   fetchPortfolioData();
 });

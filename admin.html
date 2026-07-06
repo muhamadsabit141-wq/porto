@@ -140,8 +140,23 @@
             <input type="text" id="pendidikan-tahun-selesai" placeholder="Sekarang / 2026" />
           </div>
           <div class="form-group full">
-            <label for="pendidikan-deskripsi">Deskripsi</label>
-            <textarea id="pendidikan-deskripsi" placeholder="Deskripsi singkat..."></textarea>
+            <label for="pendidikan-deskripsi">Deskripsi Singkat (tampil di kartu)</label>
+            <textarea id="pendidikan-deskripsi" placeholder="Deskripsi singkat, 1-2 kalimat..."></textarea>
+          </div>
+          <div class="form-group full">
+            <label for="pendidikan-deskripsi-panjang">Deskripsi Lengkap (tampil saat kartu diklik)</label>
+            <textarea id="pendidikan-deskripsi-panjang" placeholder="Ceritakan lebih detail di sini, boleh beberapa paragraf..." style="min-height:160px;"></textarea>
+          </div>
+
+          <div class="form-group full">
+            <label>Galeri Gambar / Video (opsional)</label>
+            <div class="gallery-upload-grid" id="pendidikan-gallery-grid">
+              <button type="button" class="gallery-add-btn" id="pendidikan-gallery-add-btn">
+                <i class="fa-solid fa-plus"></i> Tambah
+              </button>
+            </div>
+            <input type="file" id="pendidikan-gallery-input" accept="image/*,video/*" multiple class="hidden-file-input" />
+            <p class="media-hint">Gambar maks. 8MB, video maks. 50MB per file.</p>
           </div>
           <div class="full admin-form-actions">
             <button type="submit" class="btn-save" id="pendidikan-submit-btn">Tambah Pendidikan</button>
@@ -193,8 +208,23 @@
             <input type="text" id="organisasi-periode" placeholder="mis. 2024 – 2025" />
           </div>
           <div class="form-group full">
-            <label for="organisasi-deskripsi">Deskripsi</label>
-            <textarea id="organisasi-deskripsi" placeholder="Deskripsi peran/kontribusi..."></textarea>
+            <label for="organisasi-deskripsi">Deskripsi Singkat (tampil di kartu)</label>
+            <textarea id="organisasi-deskripsi" placeholder="Deskripsi singkat, 1-2 kalimat..."></textarea>
+          </div>
+          <div class="form-group full">
+            <label for="organisasi-deskripsi-panjang">Deskripsi Lengkap (tampil saat kartu diklik)</label>
+            <textarea id="organisasi-deskripsi-panjang" placeholder="Ceritakan lebih detail di sini, boleh beberapa paragraf..." style="min-height:160px;"></textarea>
+          </div>
+
+          <div class="form-group full">
+            <label>Galeri Gambar / Video Kegiatan Organisasi (opsional)</label>
+            <div class="gallery-upload-grid" id="organisasi-gallery-grid">
+              <button type="button" class="gallery-add-btn" id="organisasi-gallery-add-btn">
+                <i class="fa-solid fa-plus"></i> Tambah
+              </button>
+            </div>
+            <input type="file" id="organisasi-gallery-input" accept="image/*,video/*" multiple class="hidden-file-input" />
+            <p class="media-hint">Gambar maks. 8MB, video maks. 50MB per file. Ini terpisah dari logo di atas.</p>
           </div>
           <div class="full admin-form-actions">
             <button type="submit" class="btn-save" id="organisasi-submit-btn">Tambah Organisasi</button>
@@ -226,8 +256,12 @@
             <input type="text" id="kegiatan-kategori" placeholder="mis. Organisasi, 2026" />
           </div>
           <div class="form-group full">
-            <label for="kegiatan-deskripsi">Deskripsi</label>
-            <textarea id="kegiatan-deskripsi" placeholder="Deskripsi singkat kegiatan..."></textarea>
+            <label for="kegiatan-deskripsi">Deskripsi Singkat (tampil di kartu)</label>
+            <textarea id="kegiatan-deskripsi" placeholder="Deskripsi singkat, 1-2 kalimat..."></textarea>
+          </div>
+          <div class="form-group full">
+            <label for="kegiatan-deskripsi-panjang">Deskripsi Lengkap (tampil saat kartu diklik)</label>
+            <textarea id="kegiatan-deskripsi-panjang" placeholder="Ceritakan lebih detail di sini, boleh beberapa paragraf..." style="min-height:160px;"></textarea>
           </div>
 
           <div class="form-group full">
@@ -271,8 +305,12 @@
             <input type="text" id="prestasi-tahun" placeholder="mis. 2025" required />
           </div>
           <div class="form-group full">
-            <label for="prestasi-deskripsi">Deskripsi Singkat</label>
+            <label for="prestasi-deskripsi">Deskripsi Singkat (tampil di daftar)</label>
             <textarea id="prestasi-deskripsi" placeholder="Deskripsi singkat prestasi..."></textarea>
+          </div>
+          <div class="form-group full">
+            <label for="prestasi-deskripsi-panjang">Deskripsi Lengkap (tampil saat diklik)</label>
+            <textarea id="prestasi-deskripsi-panjang" placeholder="Ceritakan lebih detail di sini, boleh beberapa paragraf..." style="min-height:160px;"></textarea>
           </div>
 
           <div class="form-group full">
