@@ -95,6 +95,21 @@ function escapeText(value) {
   return value === null || value === undefined ? "" : String(value);
 }
 
+function animateCountUp(el, target) {
+  if (!el) return;
+  const duration = 700;
+  const startTime = performance.now();
+
+  function tick(now) {
+    const progress = Math.min((now - startTime) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = String(Math.round(eased * target));
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+
+  requestAnimationFrame(tick);
+}
+
 function setButtonLoading(button, isLoading, loadingText, defaultText) {
   if (!button) return;
   button.disabled = isLoading;
@@ -457,7 +472,7 @@ async function loadPendidikan() {
     if (error) throw error;
 
     state.pendidikanItems = data || [];
-    document.getElementById("admin-stat-pendidikan").textContent = state.pendidikanItems.length;
+    animateCountUp(document.getElementById("admin-stat-pendidikan"), state.pendidikanItems.length);
 
     pendidikanList.innerHTML = "";
     if (state.pendidikanItems.length === 0) {
@@ -690,7 +705,7 @@ async function loadOrganisasi() {
     if (error) throw error;
 
     state.organisasiItems = data || [];
-    document.getElementById("admin-stat-organisasi").textContent = state.organisasiItems.length;
+    animateCountUp(document.getElementById("admin-stat-organisasi"), state.organisasiItems.length);
 
     organisasiList.innerHTML = "";
     if (state.organisasiItems.length === 0) {
@@ -972,7 +987,7 @@ async function loadKegiatan() {
     if (error) throw error;
 
     state.kegiatanItems = data || [];
-    document.getElementById("admin-stat-kegiatan").textContent = state.kegiatanItems.length;
+    animateCountUp(document.getElementById("admin-stat-kegiatan"), state.kegiatanItems.length);
 
     kegiatanList.innerHTML = "";
     if (state.kegiatanItems.length === 0) {
@@ -1168,7 +1183,7 @@ async function loadPrestasi() {
     if (error) throw error;
 
     state.prestasiItems = data || [];
-    document.getElementById("admin-stat-prestasi").textContent = state.prestasiItems.length;
+    animateCountUp(document.getElementById("admin-stat-prestasi"), state.prestasiItems.length);
 
     prestasiList.innerHTML = "";
     if (state.prestasiItems.length === 0) {

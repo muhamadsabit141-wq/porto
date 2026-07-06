@@ -52,6 +52,24 @@ function escapeText(value) {
   return value === null || value === undefined ? "" : String(value);
 }
 
+/**
+ * Animasi angka menghitung naik dari 0 ke nilai akhir (ringan, pakai requestAnimationFrame).
+ */
+function animateCountUp(el, target) {
+  if (!el) return;
+  const duration = 700;
+  const startTime = performance.now();
+
+  function tick(now) {
+    const progress = Math.min((now - startTime) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = String(Math.round(eased * target));
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+
+  requestAnimationFrame(tick);
+}
+
 /* -----------------------------------------------------------
    3. ROUTING — perpindahan "halaman" tanpa reload / scroll-jump
 ----------------------------------------------------------- */
@@ -309,7 +327,7 @@ async function fetchOrganisasi() {
 
     if (error) throw error;
 
-    if (statEl) statEl.textContent = data ? data.length : 0;
+    if (statEl) animateCountUp(statEl, data ? data.length : 0);
 
     if (!data || data.length === 0) {
       renderInto(container, createEmptyState("Belum ada data organisasi."));
@@ -398,7 +416,7 @@ async function fetchKegiatan() {
 
     if (error) throw error;
 
-    if (statEl) statEl.textContent = data ? data.length : 0;
+    if (statEl) animateCountUp(statEl, data ? data.length : 0);
 
     if (!data || data.length === 0) {
       renderInto(container, createEmptyState("Belum ada kegiatan yang ditambahkan."));
@@ -502,7 +520,7 @@ async function fetchPrestasi() {
 
     if (error) throw error;
 
-    if (statEl) statEl.textContent = data ? data.length : 0;
+    if (statEl) animateCountUp(statEl, data ? data.length : 0);
 
     if (!data || data.length === 0) {
       renderInto(container, createEmptyState("Belum ada prestasi yang ditambahkan."));
