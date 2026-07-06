@@ -131,7 +131,13 @@ function applyNameToHero(nama) {
     const words = fullName.split(" ");
     const lastWord = words.pop();
     const firstPart = words.join(" ");
-    heroNameEl.innerHTML = `${escapeText(firstPart)} <span class="accent">${escapeText(lastWord)}</span>`;
+
+    heroNameEl.innerHTML = "";
+    heroNameEl.appendChild(document.createTextNode(firstPart ? `${firstPart} ` : ""));
+    const accentSpan = document.createElement("span");
+    accentSpan.className = "accent";
+    accentSpan.textContent = lastWord;
+    heroNameEl.appendChild(accentSpan);
   }
 }
 
