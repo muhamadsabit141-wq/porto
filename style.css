@@ -490,6 +490,26 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   border-radius: calc(var(--radius-lg) - 6px);
 }
 
+.avatar-placeholder-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--blue-accent);
+  background: var(--blue-soft);
+}
+
+.hero-photo-placeholder {
+  border-radius: calc(var(--radius-lg) - 6px);
+  font-size: 3.5rem;
+}
+
+.sidebar-brand-avatar .avatar-placeholder-icon {
+  border-radius: 12px;
+  font-size: 1.3rem;
+}
+
 /* =========================================================
    GENERIC CARDS
    ========================================================= */

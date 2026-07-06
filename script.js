@@ -160,9 +160,25 @@ async function fetchProfile() {
 
     applyNameToHero(data && data.nama);
 
+    const profilePhotoPlaceholder = document.getElementById("profile-photo-placeholder");
+    const sidebarAvatarPlaceholder = document.getElementById("sidebar-avatar-placeholder");
+
     if (data && data.foto_url) {
-      if (photoEl) photoEl.src = data.foto_url;
-      if (avatarEl) avatarEl.src = data.foto_url;
+      if (photoEl) {
+        photoEl.src = data.foto_url;
+        photoEl.classList.remove("hidden");
+      }
+      if (avatarEl) {
+        avatarEl.src = data.foto_url;
+        avatarEl.classList.remove("hidden");
+      }
+      if (profilePhotoPlaceholder) profilePhotoPlaceholder.classList.add("hidden");
+      if (sidebarAvatarPlaceholder) sidebarAvatarPlaceholder.classList.add("hidden");
+    } else {
+      if (photoEl) photoEl.classList.add("hidden");
+      if (avatarEl) avatarEl.classList.add("hidden");
+      if (profilePhotoPlaceholder) profilePhotoPlaceholder.classList.remove("hidden");
+      if (sidebarAvatarPlaceholder) sidebarAvatarPlaceholder.classList.remove("hidden");
     }
 
     if (kampusEl) kampusEl.textContent = data && data.kampus ? data.kampus : "Belum diisi";
