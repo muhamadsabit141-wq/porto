@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Raja Subhan Alpariz | Mahasiswa STIES KHAS Kempek Al-Jaelani</title>
+  <meta name="description" content="Portfolio resmi Raja Subhan Alpariz, mahasiswa aktif organisasi di STIES KHAS Kempek Al-Jaelani. Lihat riwayat pendidikan, organisasi, kegiatan, dan prestasi." />
+  <meta name="robots" content="index, follow" />
+  <meta name="author" content="Raja Subhan Alpariz" />
+  <meta name="google-site-verification" content="Xw3GQCJMsBqOZ56_ibdT0yVkTsBfJ9ORyMCiPf2C5zA" />
+
+  <!-- GANTI URL INI dengan alamat asli setelah situs online (mis. https://rajasubhanalpariz.vercel.app/) -->
+  <link rel="canonical" href="https://rajasubhanalpariz.vercel.app/" />
+
+  <!-- Open Graph (tampilan saat dibagikan ke WhatsApp/Facebook/LinkedIn) -->
+  <meta property="og:type" content="profile" />
+  <meta property="og:title" content="Raja Subhan Alpariz | Mahasiswa STIES KHAS Kempek Al-Jaelani" />
+  <meta property="og:description" content="Portfolio resmi Raja Subhan Alpariz — riwayat pendidikan, organisasi, kegiatan, dan prestasi." />
+  <meta property="og:url" content="https://rajasubhanalpariz.vercel.app/" />
+  <meta property="og:locale" content="id_ID" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Raja Subhan Alpariz | Mahasiswa STIES KHAS Kempek Al-Jaelani" />
+  <meta name="twitter:description" content="Portfolio resmi Raja Subhan Alpariz — riwayat pendidikan, organisasi, kegiatan, dan prestasi." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="style.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Data terstruktur untuk mesin pencari (Person schema). Diisi otomatis oleh script.js. -->
+  <script type="application/ld+json" id="person-schema">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Raja Subhan Alpariz",
+    "affiliation": {
+      "@type": "CollegeOrUniversity",
+      "name": "STIES KHAS Kempek Al-Jaelani"
+    },
+    "description": "Mahasiswa aktif organisasi di STIES KHAS Kempek Al-Jaelani."
+  }
+  </script>
+</head>
+<body>
+
+  <!-- ================= MOBILE TOPBAR ================= -->
+  <div class="mobile-topbar">
+    <span class="mobile-topbar-brand">RSA<span style="color:#3b82f6">.</span></span>
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Buka menu">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+  </div>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <div class="app-shell">
+
+    <!-- ================= SIDEBAR NAV ================= -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-avatar">
+          <img alt="Foto profil" id="sidebar-avatar" class="hidden" />
+          <span class="avatar-placeholder-icon" id="sidebar-avatar-placeholder"><i class="fa-solid fa-user"></i></span>
+        </div>
+        <div>
+          <div class="sidebar-brand-name" id="sidebar-name">Raja Subhan Alpariz</div>
+          <div class="sidebar-brand-role" id="sidebar-role">STIES KHAS Kempek Al-Jaelani</div>
+        </div>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <nav class="sidebar-nav">
+        <ul class="sidebar-nav-list" id="sidebar-nav-list">
+          <li class="sidebar-nav-item active" data-page="beranda">
+            <a href="#beranda" class="sidebar-nav-link"><span class="sidebar-nav-number">01</span>Beranda</a>
+          </li>
+          <li class="sidebar-nav-item" data-page="tentang">
+            <a href="#tentang" class="sidebar-nav-link"><span class="sidebar-nav-number">02</span>Tentang Saya</a>
+          </li>
+          <li class="sidebar-nav-item" data-page="pendidikan">
+            <a href="#pendidikan" class="sidebar-nav-link"><span class="sidebar-nav-number">03</span>Pendidikan</a>
+          </li>
+          <li class="sidebar-nav-item" data-page="organisasi">
+            <a href="#organisasi" class="sidebar-nav-link"><span class="sidebar-nav-number">04</span>Organisasi</a>
+          </li>
+          <li class="sidebar-nav-item" data-page="kegiatan">
+            <a href="#kegiatan" class="sidebar-nav-link"><span class="sidebar-nav-number">05</span>Kegiatan</a>
+          </li>
+          <li class="sidebar-nav-item" data-page="prestasi">
+            <a href="#prestasi" class="sidebar-nav-link"><span class="sidebar-nav-number">06</span>Prestasi</a>
+          </li>
+          <li class="sidebar-nav-item" data-page="kontak">
+            <a href="#kontak" class="sidebar-nav-link"><span class="sidebar-nav-number">07</span>Kontak</a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-social" id="sidebar-social"></div>
+      <p class="sidebar-footnote">&copy; <span id="footer-year"></span> Raja Subhan Alpariz</p>
+    </aside>
+
+    <!-- ================= PAGE VIEWPORT ================= -->
+    <main class="page-viewport" id="page-viewport">
+
+      <!-- PAGE 1: BERANDA -->
+      <section class="page active" data-page="beranda" id="page-beranda">
+        <div class="hero-page-inner">
+          <div class="hero-copy">
+            <span class="hero-kicker"><i class="fa-solid fa-graduation-cap"></i>&nbsp; Mahasiswa Aktif Organisasi</span>
+            <h1 class="hero-name">Raja Subhan <span class="accent">Alpariz</span></h1>
+            <p class="hero-tagline">
+              <span id="tagline-text"></span><span class="tagline-cursor" aria-hidden="true">|</span>
+            </p>
+            <div class="hero-cta">
+              <button type="button" class="btn btn-primary" data-goto="kontak">Hubungi Saya <i class="fa-solid fa-arrow-right"></i></button>
+              <button type="button" class="btn btn-ghost" data-goto="kegiatan">Lihat Kegiatan</button>
+            </div>
+            <div class="hero-stats" id="hero-stats">
+              <div><div class="hero-stat-num" id="stat-kegiatan">0</div><div class="hero-stat-label">Kegiatan</div></div>
+              <div><div class="hero-stat-num" id="stat-prestasi">0</div><div class="hero-stat-label">Prestasi</div></div>
+              <div><div class="hero-stat-num" id="stat-organisasi">0</div><div class="hero-stat-label">Organisasi</div></div>
+            </div>
+          </div>
+          <div class="hero-visual">
+            <div class="hero-photo-frame">
+              <img alt="Foto profil Raja Subhan Alpariz" class="hero-photo hidden" id="profile-photo" loading="lazy" />
+              <span class="avatar-placeholder-icon hero-photo-placeholder" id="profile-photo-placeholder"><i class="fa-solid fa-user"></i></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE 2: TENTANG SAYA -->
+      <section class="page" data-page="tentang" id="page-tentang">
+        <div class="page-header">
+          <p class="page-eyebrow">Profil</p>
+          <h2 class="page-title">Tentang Saya</h2>
+          <p class="page-subtitle">Sekilas tentang latar belakang dan aktivitas akademik saya.</p>
+        </div>
+
+        <div class="about-grid" id="about-grid">
+          <div class="about-fact">
+            <div class="about-fact-label">Kampus</div>
+            <div class="about-fact-value" id="fact-kampus">Memuat...</div>
+          </div>
+          <div class="about-fact">
+            <div class="about-fact-label">Program Studi</div>
+            <div class="about-fact-value" id="fact-jurusan">Memuat...</div>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <p id="about-text" class="about-text">Memuat data profil...</p>
+        </div>
+      </section>
+
+      <!-- PAGE 3: PENDIDIKAN -->
+      <section class="page" data-page="pendidikan" id="page-pendidikan">
+        <div class="page-header">
+          <p class="page-eyebrow">Riwayat</p>
+          <h2 class="page-title">Pendidikan</h2>
+          <p class="page-subtitle">Jenjang pendidikan yang pernah dan sedang saya tempuh.</p>
+        </div>
+        <div class="org-grid" id="pendidikan-grid">
+          <p class="loading-text">Memuat data pendidikan...</p>
+        </div>
+      </section>
+
+      <!-- PAGE 4: ORGANISASI -->
+      <section class="page" data-page="organisasi" id="page-organisasi">
+        <div class="page-header">
+          <p class="page-eyebrow">Kepemimpinan</p>
+          <h2 class="page-title">Organisasi &amp; Jabatan</h2>
+          <p class="page-subtitle">Pengalaman berorganisasi dan peran yang pernah diemban.</p>
+        </div>
+        <div class="org-grid" id="organisasi-grid">
+          <p class="loading-text">Memuat data organisasi...</p>
+        </div>
+      </section>
+
+      <!-- PAGE 5: KEGIATAN -->
+      <section class="page" data-page="kegiatan" id="page-kegiatan">
+        <div class="page-header">
+          <p class="page-eyebrow">Aktivitas</p>
+          <h2 class="page-title">Kegiatan</h2>
+          <p class="page-subtitle">Dokumentasi kegiatan akademik maupun non-akademik.</p>
+        </div>
+        <div class="kegiatan-grid" id="kegiatan-grid">
+          <p class="loading-text">Memuat data kegiatan...</p>
+        </div>
+      </section>
+
+      <!-- PAGE 6: PRESTASI -->
+      <section class="page" data-page="prestasi" id="page-prestasi">
+        <div class="page-header">
+          <p class="page-eyebrow">Pencapaian</p>
+          <h2 class="page-title">Prestasi</h2>
+          <p class="page-subtitle">Penghargaan dan pencapaian yang pernah diraih.</p>
+        </div>
+        <div class="timeline" id="prestasi-timeline">
+          <p class="loading-text">Memuat data prestasi...</p>
+        </div>
+      </section>
+
+      <!-- PAGE 7: KONTAK -->
+      <section class="page" data-page="kontak" id="page-kontak">
+        <div class="page-header">
+          <p class="page-eyebrow">Terhubung</p>
+          <h2 class="page-title">Sosmed &amp; Kontak</h2>
+          <p class="page-subtitle">Tertarik berkolaborasi atau sekadar menyapa? Silakan hubungi lewat kanal berikut.</p>
+        </div>
+        <div class="sosmed-links" id="sosmed-links">
+          <p class="loading-text">Memuat tautan kontak...</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ================= DETAIL MODAL (deskripsi panjang + galeri) ================= -->
+  <div class="detail-modal-overlay" id="detail-modal-overlay">
+    <div class="detail-modal-content">
+      <button type="button" class="detail-modal-close" id="detail-modal-close"><i class="fa-solid fa-xmark"></i></button>
+      <p class="detail-modal-eyebrow" id="detail-modal-eyebrow"></p>
+      <h3 class="detail-modal-title" id="detail-modal-title"></h3>
+      <p class="detail-modal-meta" id="detail-modal-meta"></p>
+      <div class="detail-modal-gallery" id="detail-modal-gallery"></div>
+      <p class="detail-modal-desc" id="detail-modal-desc"></p>
+    </div>
+  </div>
+
+  <!-- ================= LIGHTBOX ================= -->
+  <div class="lightbox-overlay" id="lightbox-overlay">
+    <div class="lightbox-content" id="lightbox-content">
+      <button type="button" class="lightbox-close" id="lightbox-close"><i class="fa-solid fa-xmark"></i></button>
+      <button type="button" class="lightbox-btn lightbox-prev" id="lightbox-prev"><i class="fa-solid fa-chevron-left"></i></button>
+      <div id="lightbox-media-slot"></div>
+      <button type="button" class="lightbox-btn lightbox-next" id="lightbox-next"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
