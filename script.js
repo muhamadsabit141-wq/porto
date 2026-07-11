@@ -71,6 +71,33 @@ function animateCountUp(el, target) {
 }
 
 /* -----------------------------------------------------------
+   4B. DATA TERSTRUKTUR (JSON-LD Person schema untuk SEO)
+----------------------------------------------------------- */
+const schemaState = { name: "", description: "", kampus: "", sameAs: [] };
+
+function renderPersonSchema() {
+  const el = document.getElementById("person-schema");
+  if (!el) return;
+
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: schemaState.name || "Raja Subhan Alpariz",
+    affiliation: {
+      "@type": "CollegeOrUniversity",
+      name: schemaState.kampus || "STIES KHAS Kempek Al-Jaelani",
+    },
+    description: schemaState.description || "Mahasiswa aktif organisasi di STIES KHAS Kempek Al-Jaelani.",
+  };
+
+  if (schemaState.sameAs.length > 0) {
+    data.sameAs = schemaState.sameAs;
+  }
+
+  el.textContent = JSON.stringify(data, null, 2);
+}
+
+/* -----------------------------------------------------------
    3. ROUTING — perpindahan "halaman" tanpa reload / scroll-jump
 ----------------------------------------------------------- */
 const VALID_PAGES = ["beranda", "tentang", "pendidikan", "organisasi", "kegiatan", "prestasi", "kontak"];
@@ -210,6 +237,11 @@ async function fetchProfile() {
     }
 
     initTaglineOnce(data && data.tagline ? data.tagline : "Mahasiswa yang bersemangat berkontribusi dan terus bertumbuh.");
+
+    schemaState.name = data && data.nama ? data.nama : "";
+    schemaState.kampus = data && data.kampus ? data.kampus : "";
+    schemaState.description = data && data.deskripsi ? data.deskripsi : "";
+    renderPersonSchema();
   } catch (err) {
     console.error("Gagal memuat data profile:", err);
     if (aboutEl) aboutEl.textContent = "Terjadi kendala saat memuat profil. Periksa koneksi internet Anda.";
@@ -629,6 +661,10 @@ async function fetchSosmed() {
     const links = [];
     if (data.tiktok) links.push({ url: data.tiktok, label: "TikTok", icon: "fa-brands fa-tiktok" });
     if (data.instagram) links.push({ url: data.instagram, label: "Instagram", icon: "fa-brands fa-instagram" });
+
+    schemaState.sameAs = [data.tiktok, data.instagram].filter(Boolean);
+    renderPersonSchema();
+
     if (data.email) {
       const mailHref = data.email.startsWith("mailto:") ? data.email : `mailto:${data.email}`;
       links.push({ url: mailHref, label: "Email", icon: "fa-solid fa-envelope" });
